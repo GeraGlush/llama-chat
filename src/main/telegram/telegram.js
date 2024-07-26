@@ -1,6 +1,5 @@
 import { StringSession } from 'telegram/sessions/index.js';
-import { TelegramClient } from 'telegram';
-import { newMessageResived } from '../talking.js';
+import { Api, TelegramClient } from 'telegram';
 import readline from 'readline';
 import path from 'path';
 import fs from 'fs';
@@ -23,7 +22,7 @@ export async function connect() {
 
   const client = new TelegramClient(
     session,
-    '23781410',
+    23781410,
     'c051a14b63203ec645edbee1586b5843',
     {
       connectionRetries: 5,
@@ -42,17 +41,6 @@ export async function connect() {
   console.log('You should now be connected.');
 
   fs.writeFileSync(pathToAccountData, JSON.stringify({ save: session.save() }));
-
-  client.addEventHandler(async (update) => {
-    if (
-      'message' in update &&
-      update.message.peerId &&
-      update.message.peerId.userId
-    ) {
-      await newMessageResived(update.message);
-    }
-  }, new Api.UpdateNewMessage());
-
   return client;
 }
 

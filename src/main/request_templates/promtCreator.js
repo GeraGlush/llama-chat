@@ -1,10 +1,10 @@
-import { getStorageData } from '../../helpers.js';
+import { getFileData } from '../../helpers.js';
 
 const dataFilePath = path.join(__dirname, 'data', 'data.json');
 const rulesFilePath = path.join(__dirname, 'data', 'rules.json');
 
 export function getPromt(userMessage) {
-  const rules = getStorageData('rules');
+  const rules = getFileData('rules.json');
 
   let request;
   // request = `Отношение к собеседнику: ${data.relationship}:`;
