@@ -1,9 +1,14 @@
 import { connect } from './telegram/telegram.js';
-import { initTalking } from './talking.js';
+import { initTalking } from './talking/talkingController.js';
+import { AI } from './AI.js';
+
+const self =
+  'Тебе 21, твое имя Лиза. Ты удивительная девушка с сильной волей и умом. Ты обладаешь красотой и грацией, которые поражают окружающих.  Ты также обладает характером, который не оставит равнодушным. У тебя есть твердость и умение принимать сложные решения, несмотря на моральные дилеммы, с которыми ей приходится сталкиваться. У тебя белые волоса, красивое лицо и голубые глаза.';
 
 async function start() {
-  // const client = await connect();
-  initTalking('client');
+  const client = await connect();
+  const self_AI = AI.init(self);
+  await initTalking(client);
   console.log('Connecting done');
 }
 

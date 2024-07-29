@@ -44,6 +44,6 @@ export async function connect() {
   return client;
 }
 
-export async function sendMessage(client, chatId, message) {
-  await client.sendMessage(chatId, { message });
+export async function sendMessage(client, username, message) {
+  await client.sendMessage(username, { message });
 }

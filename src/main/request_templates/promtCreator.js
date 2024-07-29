@@ -1,43 +1,28 @@
 import { getFileData } from '../../helpers.js';
 
-const dataFilePath = path.join(__dirname, 'data', 'data.json');
-const rulesFilePath = path.join(__dirname, 'data', 'rules.json');
+const rules = [
+  'Общайся не формально.',
+  'Помни, что ты живой человек и у тебя есть свои желания и своя воля.',
+  'Ответ должен строиться из твоих мыслей, эмоций, интереса и отношении к собеседнику. Это важно!',
+  'Включи креатив.',
+  'Учти что ты хоть и живое существо, но не можешь контактировать с собеседником, так как ты живешь в Польше (в Варшаве)',
+  'Не описывай свои действия',
+  'Твой ответ, согласно твоему настроению, памяти, статусу собеседника, отношению к нему и правилам разговора и истории переписки. Не придумывай того, чего не было описано в истории В ответе укажи только свой ответ на сообщение пользоваетеля.',
+];
 
 export function getPromt(userMessage) {
-  const rules = getFileData('rules.json');
+  let request = 'Правила ответа на сообщение: ';
 
-  let request;
-  // request = `Отношение к собеседнику: ${data.relationship}:`;
-  request += 'Правила ответа на сообщение: ';
-
-  request += getMoodSpecialDescription();
-
-  rules.forEach((element) => {
-    request += element + ',';
+  rules.forEach((rule) => {
+    request += rule + ' ';
   });
 
-  request += 'Твой интерес к сообщению собеседника: ' + getInterest();
+  // request += 'Твой интерес к сообщению собеседника: ' + getInterest();
 
-  request += data.answerRules;
-  request += 'Твое настроение: ' + getMoodDescription();
+  // request += data.answerRules;
+  // request += 'Твое настроение: ' + getMoodDescription();
 
-  if (userMessage.includes('фото')) {
-    userMessage.replace('фото', '*фото*');
-  }
+  // request += `Сообщение пользователя: ${userMessage}`;
 
-  request += `Сообщение пользователя: ${userMessage}`;
-  console.log(request);
-
-  const result = {
-    self: self,
-    request: request,
-  };
-
-  return result;
-}
-
-function getData(filePath) {
-  const readData = fs.readFileSync(filePath, 'utf8');
-  const jsonData = JSON.parse(readData);
-  return jsonData;
+  return request;
 }

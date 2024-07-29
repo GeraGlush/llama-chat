@@ -1,18 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 
-const __dirname = path.join(path.resolve(), 'src');
+const __dirname = path.resolve();
 
 export function getFileData(storageName) {
-  const mainDataStoragePath = path.join(__dirname, 'storage', storageName);
+  const mainDataStoragePath = storageName.includes('/Users/')
+    ? storageName
+    : path.join(__dirname, storageName);
   const readData = fs.readFileSync(mainDataStoragePath, 'utf8');
   const jsonData = JSON.parse(readData);
   return jsonData;
 }
 
 export async function scanDir(dir) {
-  const dirPath = path.join(__dirname, dir);
-  console.log(dirPath);
+  const dirPath = path.join(path.resolve(), dir);
 
   try {
     await fs.promises.access(dirPath);
@@ -25,7 +26,9 @@ export async function scanDir(dir) {
 }
 
 export function setFilesData(storageName, data) {
-  const mainDataStoragePath = path.join(__dirname, 'storage', storageName);
+  const mainDataStoragePath = storageName.includes('/Users/')
+    ? storageName
+    : path.join(__dirname, storageName);
   const jsonData = JSON.stringify(data);
   fs.writeFileSync(mainDataStoragePath, jsonData);
 }
