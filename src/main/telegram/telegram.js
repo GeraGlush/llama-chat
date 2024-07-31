@@ -12,10 +12,7 @@ const rl = readline.createInterface({
 export async function connect() {
   console.log('Connecting...');
   const __dirname = path.resolve();
-  const pathToAccountData = path.join(
-    __dirname,
-    'src/main/telegram/accout.json',
-  );
+  const pathToAccountData = path.join(__dirname, 'main/telegram/accout.json');
   const accoutData = JSON.parse(fs.readFileSync(pathToAccountData));
 
   const session = new StringSession(accoutData.save);

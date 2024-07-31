@@ -1,14 +1,11 @@
-import { setFilesData } from '../../helpers.js';
+import { setFileData } from '../../helpers.js';
 import { NewMessage } from 'telegram/events/index.js';
 import { answerToSinglePerson } from './answer.js';
 
-function newMessage(client, person, message) {
-  console.log(message);
-
-  answerToSinglePerson(client, person, message);
-}
+let talking = false;
 
 async function setup(client, person) {
+  talking = true;
   client.addEventHandler((update) => {
     handleNewMessage(update, client, person);
   }, new NewMessage({}));
@@ -23,10 +20,10 @@ async function handleNewMessage(update, client, person) {
     const messageDate = new Date(update.message.date * 1000);
     if (messageDate > person.lastResponseTime) {
       const text = update.message.message;
-      newMessage(client, person, text);
+      await answerToSinglePerson(client, person, text);
       person.lastResponseTime = new Date().getTime();
 
-      setFilesData(`peoples/${userId}.json`, person);
+      await setFileData(`peoples/${userId}.json`, person);
     }
   }
 }
@@ -35,7 +32,7 @@ export async function startTalkingToPerson(client, person) {
   if (!client) return console.error('No client provided to', person.username);
 
   fetchLatestMessages(client, person);
-  await setup(client, person);
+  if (!talking) await setup(client, person);
 }
 
 async function fetchLatestMessages(client, person) {
@@ -53,9 +50,9 @@ async function fetchLatestMessages(client, person) {
 
   if (newMessages.length > 0) {
     const combinedText = newMessages.map((msg) => msg.text).join('. ');
-    newMessage(client, person, combinedText);
+    await answerToSinglePerson(client, person, combinedText);
     person.lastResponseTime = new Date().getTime();
     const userId = messages[0].peerId.userId.value;
-    setFilesData(`peoples/${Number(userId)}.json`, person);
+    setFileData(`peoples/${Number(userId)}.json`, person);
   }
 }

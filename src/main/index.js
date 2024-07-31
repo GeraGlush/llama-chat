@@ -1,13 +1,14 @@
 import { connect } from './telegram/telegram.js';
 import { initTalking } from './talking/talkingController.js';
-import { AI } from './AI.js';
+import { NN } from './brain/NN_requests.js';
 
-const self =
-  'Тебе 21, твое имя Лиза. Ты удивительная девушка с сильной волей и умом. Ты обладаешь красотой и грацией, которые поражают окружающих.  Ты также обладает характером, который не оставит равнодушным. У тебя есть твердость и умение принимать сложные решения, несмотря на моральные дилеммы, с которыми ей приходится сталкиваться. У тебя белые волоса, красивое лицо и голубые глаза.';
+export let brain, AI;
 
 async function start() {
   const client = await connect();
-  const self_AI = AI.init(self);
+  brain = new NN('brain');
+  AI = new NN('AI');
+
   await initTalking(client);
   console.log('Connecting done');
 }
