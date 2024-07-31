@@ -26,7 +26,7 @@ export async function scanDir(dir) {
   }
 }
 
-export function setFilesData(storageName, data) {
+export function setFileData(storageName, data) {
   const mainDataStoragePath = storageName.includes('/Users/')
     ? storageName
     : path.join(__dirname, storageName);
