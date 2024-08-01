@@ -17,6 +17,8 @@ async function handleNewMessage(update, client, person) {
   const userId = Number(update.message.peerId.userId.value);
 
   if (userId === person.userId) {
+    console.log('New message from', person.username);
+
     const messageDate = new Date(update.message.date * 1000);
     if (messageDate > person.lastResponseTime) {
       const text = update.message.message;

@@ -3,36 +3,42 @@ import { setFileData } from '../../helpers.js';
 import { relationshipPlus } from '../brain/relationship.js';
 
 let dialog = [];
-const maxDialogLength = 2;
+const maxDialogLength = 3;
+const yoyHaveToPayMessage =
+  'Сори... Я не могу тебе сказать ничего, напиши @geragl... Иначе я просто... В общем, напиши ему по поводу меня';
 
 export async function answerToSinglePerson(client, person, message) {
   const lastMessage = await client.getMessages(person.username, {
     limit: 1,
-  })[0];
-  console.log('lastMessageMe:', lastMessageMe.message);
-
-  if (lastMessage.out) return;
-  if (dialog[0]?.text === message) return;
-  console.log('resived:', message);
+  });
+  if (lastMessage[0].out) return;
 
   dialog.unshift({
     speaker: 'user',
     name: person.name,
     text: message,
   });
-  console.log(dialog);
-  if (dialog.length > maxDialogLength) dialog.pop();
-  console.log(dialog);
-  console.log('dialog ??', dialog.length > maxDialogLength);
+  if (person.payStatus === 'trial' && person.relationship.step > 1) {
+    person.payStatus = null;
+    await client.sendMessage(person.username, {
+      message: yoyHaveToPayMessage,
+    });
+    return;
+  }
+  if (dialog.length >= maxDialogLength) dialog.pop();
+  if (dialog.length >= maxDialogLength) dialog.pop();
 
   // -- перед ответом
 
-  const mindset = await brain.request(dialog);
+  const mindset = await brain.request([...dialog]);
+  console.log(mindset);
+
   // await client.sendMessage(person.username, {
   //   message: `Мысли: ${mindset.thoughts}. \nОтношение после смс: ${mindset.relPlus}. \nЭмоции: ${mindset.mood}`,
   // });
+
   const answer = await AI.request(
-    dialog,
+    [...dialog],
     mindset,
     person.relationship.description,
   );
@@ -52,16 +58,6 @@ export async function answerToSinglePerson(client, person, message) {
   );
   person.relationship = newRelationship ?? person.relationship;
   person.mood = mindset.mood;
-  dialog = dialog.map((msg) => {
-    msg.text.replace('Последнее смс (реагируй на него): ', '');
-  });
-  console.log('clean dialog', dialog);
   person.dialog = dialog;
   await setFileData(`peoples/${person.userId}.json`, person);
-}
-
-async function getMyLast(client, person) {
-  const messages = await client.getMessages(person.username, { limit: 10 });
-  const lastMyMessage = messages.find((msg) => msg.out);
-  return lastMyMessage;
 }
