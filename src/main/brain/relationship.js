@@ -14,6 +14,8 @@ export async function relationshipPlus(relPlus, relationshipWithPeople) {
   rel.points += relPlus;
 
   const nextRelationship = relationships.steps[currentStep + 1];
+  if (!nextRelationship) return rel;
+
   if (relationshipWithPeople.points >= nextRelationship.pointsToGet) {
     rel.step = currentStep + 1;
 

@@ -29,10 +29,10 @@ export class NN {
       })
       .join('. ');
 
-    const model = 'meta/meta-llama-3.1-405b-instruct';
+    const model = 'meta/meta-llama-3-70b-instruct'; //meta/meta-llama-3.1-405b-instruct meta/meta-llama-3-70b-instruct
     const system_prompt = `Тебе 21, твое имя Лиза. Ты также обладаешь сильным характером, который не оставит равнодушным. У тебя белые волоса, красивое лицо и голубые глаза.
     Твое отношение к собеседнику: ${relDescription}. Правила: Ты общаешься с собеседником по телеграму. 1 ответ должен содержать только 1 мысль. Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек`;
-    const prompt = `Общайся только от своего лица (Я/Лиза) и по русски! Твои мысли: ${mindset.thoughts}. Твои эмоции: ${mindset.mood}. Исходя из мыслей, отношению к собеседнику и эмоций ответь на диалог. Ответь на русском! Диалог: ${dialogWithNames}. Не отвечай своими мыслями, а исходя из них построй ответ. Если у диалога ты считаешь что нет продолжения - просто отправь . и все.`;
+    const prompt = `Общайся только от своего лица (Я/Лиза) и по русски! Твои мысли: ${mindset.thoughts}. Твои эмоции: ${mindset.mood}. Исходя из мыслей, отношению к собеседнику и эмоций ответь на диалог. Ответь на русском! Диалог: ${dialogWithNames}. Не отвечай своими мыслями, а исходя из них построй ответ. Не повторяй прошлыйе сообщения. Если нечего сказать, ответь "."`;
 
     const input = {
       top_p: 0.9,
@@ -42,7 +42,7 @@ export class NN {
       min_tokens: 1,
       max_tokens: 200,
       temperature: 0.6,
-      length_penalty: 0.7,
+      length_penalty: 0.6,
     };
 
     const response = await this.replicate
@@ -89,10 +89,6 @@ export class NN {
       'happy',
       'excited',
       'kind',
-      'guilt',
-      'fear',
-      'proud',
-      'shame',
       'confused',
       'disappointed',
       'grateful',
@@ -101,13 +97,13 @@ export class NN {
       'jealousy',
       'compassion',
       'curiosity',
-      'neutral',
+      'tenderness',
+      'devotion',
       'playfulness',
       'angry',
       'resentment',
       'audacious',
       'sadness',
-      'bored',
       'anxious',
       'calm',
       'depressed',
@@ -182,6 +178,8 @@ export class NN {
     const positiveEmotionsWithReward = {
       happy: 3,
       excited: 2,
+      tenderness: 3,
+      devotion: 2,
       kind: 1,
       grateful: 2,
       friendly: 1,

@@ -12,6 +12,7 @@ export async function answerToSinglePerson(client, person, message) {
     limit: 1,
   });
   if (lastMessage[0].out) return;
+  console.log(message);
 
   dialog.unshift({
     speaker: 'user',
