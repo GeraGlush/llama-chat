@@ -1,84 +1,49 @@
 import Replicate from 'replicate';
 
 export class NN {
-  constructor(type) {
-    this.type = type;
+  constructor() {
     this.replicate = new Replicate();
   }
 
-  async request(dialog, mindset, relationshipDescription) {
-    if (this.type === 'AI') {
-      return await this.AIRequest(dialog, mindset, relationshipDescription);
-    } else if (this.type === 'brain') {
-      return await this.brainRequest(dialog);
-    } else {
-      throw new Error('Unknown NN type');
-    }
-  }
+  async request(dialog) {
+    let dialogWithNames = dialog.map((message) => {
+      return {
+        role: message.speaker,
+        name: message.name,
+        thoughts: message.thoughts,
+        content: message.content.replace(
+          'Последнее смс (реагируй на него):',
+          '',
+        ),
+      };
+    });
 
-  async AIRequest(dialog, mindset, relDescription) {
-    let dialogWithNames = dialog;
-    dialogWithNames[0].text = `Последнее смс (реагируй на него): ${dialog[0].text}`;
+    dialogWithNames[0].content = `Последнее смс (реагируй на него): ${dialog[0].content}`;
     dialogWithNames = dialog
       .map((message) => {
         if (message.speaker === 'user') {
-          return `${message.name}: "${message.text}"`;
+          return `${message.name}: "${message.content}"`;
         } else {
-          return `Ты: "${message.text}"`;
+          return `Ты: "${message.content}"`;
         }
       })
       .join('. ');
 
-    const model = 'meta/meta-llama-3-70b-instruct'; //meta/meta-llama-3.1-405b-instruct meta/meta-llama-3-70b-instruct
-    const system_prompt = `Тебе 21, твое имя Лиза. Ты также обладаешь сильным характером, который не оставит равнодушным. У тебя белые волоса, красивое лицо и голубые глаза.
-    Твое отношение к собеседнику: ${relDescription}. Правила: Ты общаешься с собеседником по телеграму. 1 ответ должен содержать только 1 мысль. Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек`;
-    const prompt = `Общайся только от своего лица (Я/Лиза) и по русски! Твои мысли: ${mindset.thoughts}. Твои эмоции: ${mindset.mood}. Исходя из мыслей, отношению к собеседнику и эмоций ответь на диалог. Ответь на русском! Диалог: ${dialogWithNames}. Не отвечай своими мыслями, а исходя из них построй ответ. Не повторяй прошлыйе сообщения. Если нечего сказать, ответь "."`;
+    const moodPromise = this.generateMoodResponse(dialogWithNames);
+    const interestPromise = this.generateInterest(dialogWithNames);
+    const prevData = await Promise.all([interestPromise, moodPromise]);
 
-    const input = {
-      top_p: 0.9,
-      prompt,
-      system_prompt,
-      length_penalty: 0.1,
-      min_tokens: 1,
-      max_tokens: 200,
-      temperature: 0.6,
-      length_penalty: 0.6,
-    };
+    const thoughtPromise =
+      prevData[0] >= 6
+        ? this.generateThoughtsResponse(dialogWithNames, prevData[1])
+        : null;
+    const thoughts = thoughtPromise ? await thoughtPromise : '';
 
-    const response = await this.replicate
-      .run(model, { input })
-      .catch((err) => console.error(err));
-
-    return response
-      .join('')
-      .replace('"', '')
-      .replace('Ты:', '')
-      .replace('Лиза:', '')
-      .replace('Lisa:', '')
-      .replace('"', '')
-      .replace("'", '')
-      .replace('Я:', '');
-  }
-
-  async brainRequest(dialog) {
-    let dialogWithNames = dialog;
-    dialogWithNames[0].text = `Последнее смс (реагируй на него): ${dialog[0].text}`;
-    dialogWithNames = dialog
-      .map((message) => {
-        if (message.speaker === 'user') {
-          return `${message.name}: "${message.text}"`;
-        } else {
-          return `Ты: "${message.text}"`;
-        }
-      })
-      .join('. ');
-
-    const mood = await this.generateMoodResponse(dialogWithNames);
-    const thought = await this.generateThoughtsResponse(dialogWithNames, mood);
     const finalResponse = {
-      mood: mood ?? [],
-      relPlus: this.countRewar(mood),
-      thoughts: thought ?? '',
+      mood: prevData[1] ?? [],
+      interest: prevData[0],
+      relPlus: this.countRewar(prevData[1]),
+      thoughts,
     };
 
     return finalResponse;
@@ -87,7 +52,7 @@ export class NN {
   async generateMoodResponse(dialogWithNames) {
     const emotions = [
       'happy',
-      'excited',
+      // 'excited',
       'kind',
       'confused',
       'disappointed',
@@ -172,6 +137,28 @@ export class NN {
       .join('')
       .replace(/\*.*?\*/g, '')
       .replace('\n', '');
+  }
+
+  async generateInterest(dialogWithNames) {
+    const prompt = `Оцени интерес диалога от 2 до 8. Диалог: ${dialogWithNames}. 2 - совсем не интересно, 8 - очень интересно. Если разговор долго идет на одну и ту же тему - выдай от 3 до 5.`;
+    const replicate = new Replicate();
+    const model = 'meta/llama-2-7b-chat';
+    const input = {
+      top_p: 0.9,
+      prompt,
+      system_prompt: `Ответь одной цифрой от 2 до 8`,
+      min_tokens: 1,
+      max_tokens: 15,
+      temperature: 0.6,
+      presence_penalty: 0.3,
+      stop: ['\n', ' '], // остановить генерацию после первой цифры
+    };
+    const response = await replicate
+      .run(model, { input })
+      .catch((err) => console.error(err));
+
+    const number = Number(response.join('').match(/\d+/g)[0]);
+    return number ?? 0;
   }
 
   countRewar(mood) {

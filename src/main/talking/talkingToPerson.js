@@ -46,11 +46,21 @@ async function fetchLatestMessages(client, person) {
     ? new Date(person.lastResponseTime)
     : new Date(new Date().getTime() - 12 * 60 * 60 * 1000);
 
-  const newMessages = messages.filter(
-    (msg) => new Date(msg.date * 1000) > lastResponseTime,
-  );
+  const filtredMessages = messages.filter((msg) => {
+    const messageDate = new Date(msg.date * 1000);
+    return messageDate > lastResponseTime;
+  });
+
+  let newMessages = [];
+
+  for (let i = 0; i < filtredMessages.length - 1; i++) {
+    if (filtredMessages[i].out) break;
+    newMessages.push(filtredMessages[i]);
+  }
+  newMessages = newMessages.reverse();
 
   if (newMessages.length > 0) {
+    console.log('New unreaded from', person.username);
     const combinedText = newMessages.map((msg) => msg.text).join('. ');
     await answerToSinglePerson(client, person, combinedText);
     person.lastResponseTime = new Date().getTime();

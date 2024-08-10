@@ -2,12 +2,15 @@ import { getFileData } from '../../helpers.js';
 
 export async function relationshipPlus(relPlus, relationshipWithPeople) {
   if (!relationshipWithPeople) {
-    rel.step = 1;
-    rel.points = 10;
-    description = relationships.steps[1].description;
+    const newRel = {};
+    newRel.step = 1;
+    newRel.points = 10;
+    newRel.description = relationships.steps[1].description;
+    return newRel;
   }
 
-  if (typeof relPlus !== 'number' || relPlus === 0) return;
+  if (typeof relPlus !== 'number' || relPlus === 0)
+    return relationshipWithPeople;
   const relationships = await getFileData('storage/relationship.json');
   const rel = relationshipWithPeople;
   const currentStep = rel.step;

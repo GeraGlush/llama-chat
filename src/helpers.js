@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const currentDir = path.resolve();
-const __dirname = path.join(currentDir, '../');
+const __dirname = path.resolve();
 
 export function getFileData(storageName) {
   const mainDataStoragePath = storageName.includes('/Users/')
@@ -14,7 +13,7 @@ export function getFileData(storageName) {
 }
 
 export async function scanDir(dir) {
-  const dirPath = path.join(__dirname, dir);
+  const dirPath = dir.includes('/Users/') ? dir : path.join(__dirname, dir);
 
   try {
     await fs.promises.access(dirPath);

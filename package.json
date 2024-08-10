@@ -23,6 +23,7 @@
     "llama-tokenizer-js": "^1.1.3",
     "next": "^14.0.4",
     "nextjs": "^0.0.3",
+    "openai": "^4.54.0",
     "puppeteer": "^22.14.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
