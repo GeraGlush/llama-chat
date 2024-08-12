@@ -1,3 +1,5 @@
 node_modules
 .vs_code
 .github
+src/main/brain/settings.json
+/peoples
