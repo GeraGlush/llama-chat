@@ -6,6 +6,7 @@ import { relationshipPlus } from '../brain/relationship.js';
 const maxDialogLength = 15;
 const shortDialogLength = 4;
 const interestToPass = 4;
+
 const youHaveToPayMessage =
   'Сори... Я не могу тебе сказать ничего, напиши @geragl... Иначе я просто... В общем, напиши ему по поводу меня';
 
@@ -61,6 +62,8 @@ export async function answerToSinglePerson(client, person, message) {
     mindset,
     person.relationship.description,
   );
+  console.log(toSend);
+
   if (fullAnswer === '' && toSend.length === 0) return;
 
   for (let i = 0; i < toSend.length; i++) {

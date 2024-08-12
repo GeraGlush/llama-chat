@@ -1,8 +1,9 @@
 import OpenAI from 'openai';
+import { getFileData, setFileData } from '../../helpers.js';
 
 const openai = new OpenAI({
   apiKey:
-    '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',
+    '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',
 });
 const instructions = `Тебе 21, твое имя Лиза. Ты также обладаешь сильным характером, который не оставит равнодушным. Ты очень красивая и удивительная девушка!
 Правила: Ты общаешься с собеседником по телеграму. Отвечай есстественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. Общайся и отвечай исходя из мыслей, эмоций и отношению к собеседнику, которое будет дано тебе в промте. Ты в Варшаве, а собеседник в Анталии! Вы не можете контактировать!`;
@@ -11,21 +12,29 @@ let assistantId;
 let threadId;
 
 export async function init() {
-  assistantId = await createAssistant();
-  threadId = await createThread();
-  process.on('SIGINT', async () => {
-    console.log('SIGINT received. Closing active threads...');
-    await openai.beta.threads.del(threadId);
-    process.exit();
-  });
+  const data = await getFileData('src/main/brain/settings.json');
+  assistantId = data.assistantId;
+  threadId = data.threadId;
+
+  if (!assistantId) {
+    assistantId = await createAssistant();
+    data.assistantId = assistantId;
+  }
+  if (!threadId) {
+    threadId = await createThread();
+    data.threadId = threadId;
+  }
+  await setFileData('src/main/brain/settings.json', data);
+  // process.on('SIGINT', async () => {
+  //   console.log('SIGINT received. Closing active threads...');
+  //   process.exit();
+  // });
 }
 
 async function createAssistant() {
   const assistant = await openai.beta.assistants.create({
     name: 'Liza',
     instructions,
-    // model: 'gpt-4o',
-    // model: 'gpt-3.5-turbo-16k',
     model: 'gpt-4o-mini',
   });
   return assistant.id;
@@ -60,6 +69,7 @@ async function streamAssistantResponse(
       })
       .on('textDelta', async (textDelta) => {
         buffer += textDelta.value;
+        console.log(textDelta);
 
         // Разделение текста на предложения
         let sentences = buffer.split(/(?<=[.!?])\s+/);
@@ -70,9 +80,14 @@ async function streamAssistantResponse(
 
             // Проверка: отправлять сообщение только если оно еще не было отправлено
             if (sentenceTrimed && !sentMessages.has(sentenceTrimed)) {
-              await sendMessageFunction(sentenceTrimed);
-              fullAnswer += sentenceTrimed + ' ';
-              sentMessages.add(sentenceTrimed);
+              try {
+                await sendMessageFunction(sentenceTrimed);
+                fullAnswer += sentenceTrimed + ' ';
+                sentMessages.add(sentenceTrimed);
+                console.log(`Sent message: ${sentenceTrimed}`);
+              } catch (error) {
+                console.error(`Error sending message: ${error.message}`);
+              }
             }
           }
 
@@ -84,6 +99,7 @@ async function streamAssistantResponse(
         resolve(fullAnswer.trim());
       })
       .on('error', (err) => {
+        console.error(`Stream error: ${err.message}`);
         reject(err);
       });
   });
