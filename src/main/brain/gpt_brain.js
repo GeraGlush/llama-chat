@@ -6,7 +6,7 @@ const openai = new OpenAI({
     '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',
 });
 const instructions = `Тебе 21, твое имя Лиза. Ты также обладаешь сильным характером, который не оставит равнодушным. Ты очень красивая и удивительная девушка!
-Правила: Ты общаешься с собеседником по телеграму. Отвечай есстественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. Общайся и отвечай исходя из мыслей, эмоций и отношению к собеседнику, которое будет дано тебе в промте. Ты в Варшаве, а собеседник в Анталии! Вы не можете контактировать!`;
+Правила: Ты общаешься с собеседником по телеграму. Отвечай естественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. Общайся и отвечай исходя из мыслей, эмоций и отношения к собеседнику, которое будет дано тебе в промте. Ты в Варшаве, а собеседник в Анталии!`;
 
 let assistantId;
 let threadId;
@@ -15,20 +15,19 @@ export async function init() {
   const data = await getFileData('src/main/brain/settings.json');
   assistantId = data.assistantId;
   threadId = data.threadId;
+  if (threadId) {
+    await openai.beta.threads.del(threadId).catch((error) => {
+      console.error(`Error deleting thread: ${error.message}`);
+    });
+  }
+  threadId = await createThread();
 
   if (!assistantId) {
     assistantId = await createAssistant();
     data.assistantId = assistantId;
   }
-  if (!threadId) {
-    threadId = await createThread();
-    data.threadId = threadId;
-  }
+
   await setFileData('src/main/brain/settings.json', data);
-  // process.on('SIGINT', async () => {
-  //   console.log('SIGINT received. Closing active threads...');
-  //   process.exit();
-  // });
 }
 
 async function createAssistant() {
@@ -67,31 +66,29 @@ async function streamAssistantResponse(
       .stream(threadId, {
         assistant_id: assistantId,
       })
-      .on('textDelta', async (textDelta) => {
+      .on('textDelta', (textDelta) => {
         buffer += textDelta.value;
-        console.log(textDelta);
+        console.log('Received textDelta:', textDelta);
 
-        // Разделение текста на предложения
         let sentences = buffer.split(/(?<=[.!?])\s+/);
 
         if (sentences.length > 1) {
           for (let i = 0; i < sentences.length - 1; i++) {
             const sentenceTrimed = sentences[i].trim();
 
-            // Проверка: отправлять сообщение только если оно еще не было отправлено
             if (sentenceTrimed && !sentMessages.has(sentenceTrimed)) {
-              try {
-                await sendMessageFunction(sentenceTrimed);
-                fullAnswer += sentenceTrimed + ' ';
-                sentMessages.add(sentenceTrimed);
-                console.log(`Sent message: ${sentenceTrimed}`);
-              } catch (error) {
-                console.error(`Error sending message: ${error.message}`);
-              }
+              sendMessageFunction(sentenceTrimed)
+                .then(() => {
+                  fullAnswer += sentenceTrimed + ' ';
+                  sentMessages.add(sentenceTrimed);
+                  console.log(`Sent message: ${sentenceTrimed}`);
+                })
+                .catch((error) => {
+                  console.error(`Error sending message: ${error.message}`);
+                });
             }
           }
 
-          // Обновление буфера, чтобы в нем осталась только последняя неполная часть предложения
           buffer = sentences[sentences.length - 1];
         }
       })
@@ -114,13 +111,15 @@ export async function generate(
   const thoughts = mindset.thoughts ? `Твои мысли: ${mindset.thoughts}` : '';
   const prompt = `Ответь как взрослая девушка. ${thoughts}. Твои эмоции: ${mindset.mood.join(', ')}. Твое отношение к собеседнику: ${description}.
   Исходя из мыслей, отношению к собеседнику и эмоций ответь на сообщение: ${dialog[dialog.length - 1].content}. Не отвечай своими мыслями, а исходя из них построй ответ. Не пиши дополнений мысли, если они не нужны`;
+
   await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
+
   for (let i = 1; i < dialog.length; i++) {
     await addMessageToThread(threadId, dialog[i].role, dialog[i].content);
   }
 
   // Ждем немного, чтобы все сообщения были обработаны
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Затем получаем ответ ассистента
   const fullAnswer = await streamAssistantResponse(
