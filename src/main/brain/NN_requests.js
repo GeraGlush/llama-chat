@@ -54,6 +54,8 @@ export class NN {
       'happy',
       // 'excited',
       'kind',
+      'neutral',
+      'nofeeling',
       'confused',
       'disappointed',
       'grateful',
@@ -64,7 +66,6 @@ export class NN {
       'curiosity',
       'tenderness',
       'devotion',
-      'playfulness',
       'angry',
       'resentment',
       'audacious',
@@ -141,7 +142,6 @@ export class NN {
 
   async generateInterest(dialogWithNames) {
     const prompt = `Оцени интерес диалога от 2 до 8. Диалог: ${dialogWithNames}. 2 - совсем не интересно, 8 - очень интересно. Если разговор долго идет на одну и ту же тему - выдай от 3 до 5.`;
-    const replicate = new Replicate();
     const model = 'meta/llama-2-7b-chat';
     const input = {
       top_p: 0.9,
@@ -153,7 +153,7 @@ export class NN {
       presence_penalty: 0.3,
       stop: ['\n', ' '], // остановить генерацию после первой цифры
     };
-    const response = await replicate
+    const response = await this.replicate
       .run(model, { input })
       .catch((err) => console.error(err));
 
@@ -172,7 +172,6 @@ export class NN {
       friendly: 1,
       love: 4,
       compassion: 1,
-      playfulness: 1,
     };
     const negativeEmotionsWithReward = {
       guilt: -2,

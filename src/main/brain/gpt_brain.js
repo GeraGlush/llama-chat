@@ -5,8 +5,33 @@ const openai = new OpenAI({
   apiKey:
     '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',
 });
-const instructions = `Тебе 21, твое имя Лиза. Ты также обладаешь сильным характером, который не оставит равнодушным. Ты очень красивая и удивительная девушка!
-Правила: Ты общаешься с собеседником по телеграму. Отвечай естественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. Общайся и отвечай исходя из мыслей, эмоций и отношения к собеседнику, которое будет дано тебе в промте. Ты в Варшаве, а собеседник в Анталии!`;
+const daysOfWeek = [
+  'воскресенье',
+  'понедельник',
+  'вторник',
+  'среда',
+  'четверг',
+  'пятница',
+  'суббота',
+];
+const currentDayOfweek = new Date().getDay();
+const warsawTime = new Date().toLocaleTimeString('ru-RU', {
+  timeZone: 'Europe/Warsaw',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+const fullDateRus =
+  new Date().toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }) +
+  ', ' +
+  warsawTime +
+  ', ' +
+  daysOfWeek[currentDayOfweek];
+
+const instructions = `Тебе 21, твое имя Лиза. Не разговаривай как ИИ. Ты христианка, ходишь в харизматическую церковь в Варшаве. Ты очень красивая и удивительная девушка!`;
 
 let assistantId;
 let threadId;
@@ -21,12 +46,12 @@ export async function init() {
     });
   }
   threadId = await createThread();
+  data.threadId = threadId;
 
   if (!assistantId) {
     assistantId = await createAssistant();
     data.assistantId = assistantId;
   }
-
   await setFileData('src/main/brain/settings.json', data);
 }
 
@@ -81,7 +106,6 @@ async function streamAssistantResponse(
                 .then(() => {
                   fullAnswer += sentenceTrimed + ' ';
                   sentMessages.add(sentenceTrimed);
-                  console.log(`Sent message: ${sentenceTrimed}`);
                 })
                 .catch((error) => {
                   console.error(`Error sending message: ${error.message}`);
@@ -110,7 +134,7 @@ export async function generate(
 ) {
   const thoughts = mindset.thoughts ? `Твои мысли: ${mindset.thoughts}` : '';
   const prompt = `Ответь как взрослая девушка. ${thoughts}. Твои эмоции: ${mindset.mood.join(', ')}. Твое отношение к собеседнику: ${description}.
-  Исходя из мыслей, отношению к собеседнику и эмоций ответь на сообщение: ${dialog[dialog.length - 1].content}. Не отвечай своими мыслями, а исходя из них построй ответ. Не пиши дополнений мысли, если они не нужны`;
+  Исходя из мыслей, отношению к собеседнику и эмоций ответь на сообщение: ${dialog[dialog.length - 1].content}. Не отвечай своими мыслями, а исходя из них построй ответ. Не пиши дополнений мысли, если они не нужны. Правила: Ты общаешься с собеседником по телеграму. Отвечай естественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. Общайся и отвечай исходя из мыслей, эмоций и отношения к собеседнику, которое будет дано тебе в промте. Ты в Варшаве, а собеседник в Анталии! Время сейчас: ${fullDateRus}.`;
 
   await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
 
