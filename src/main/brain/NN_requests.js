@@ -158,8 +158,9 @@ export class NN {
       .run(model, { input })
       .catch((err) => console.error(err));
 
-    const number = Number(response.join('').match(/\d+/g)[0]);
-    return number ?? 0;
+    const matchedNumbers = response.join('')?.match(/\d+/g);
+    const number = Number(matchedNumbers ? matchedNumbers[0] : 0);
+    return number;
   }
 
   countRewar(mood) {

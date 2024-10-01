@@ -106,11 +106,13 @@ export async function setMood(newMoods, userId) {
     }
   });
 
-  const sortedMoods = Object.entries(person.mood)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-  person.mood = Object.fromEntries(sortedMoods);
+  Object.keys(person.mood).forEach((mood) => {
+    if (!newMoods.includes(mood) && person.mood[mood] > 0) {
+      person.mood[mood] -= 0.3;
+    }
+  });
 
+  console.log('Mood:', person.mood);
   await setFileData(`peoples/${userId}.json`, person);
 }
 
@@ -121,15 +123,27 @@ export async function getMoodsDescription(userId) {
   const descriptionsMood = [];
   Object.entries(mood).forEach(([moodName, moodValue]) => {
     if (descriptions[moodName]) {
-      if (moodValue <= 4) {
+      if (moodValue > 0.5 && moodValue <= 1) {
         descriptionsMood.push(descriptions[moodName].low);
-      } else if (moodValue > 4 && moodValue < 8) {
+      } else if (moodValue > 1 && moodValue < 2) {
         descriptionsMood.push(descriptions[moodName].middle);
-      } else if (moodValue >= 8) {
+      } else if (moodValue >= 2) {
         descriptionsMood.push(descriptions[moodName].high);
       }
     }
   });
 
-  return descriptionsMood.join(' ');
+  console.log('----------'); // log
+  console.log(
+    descriptionsMood
+      .sort((a, b) => b.length - a.length)
+      .splice(3)
+      .join(' '),
+  );
+  console.log('----------');
+
+  return descriptionsMood
+    .sort((a, b) => b.length - a.length)
+    .splice(3)
+    .join(' ');
 }

@@ -3,7 +3,8 @@ import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { relationshipPlus } from '../brain/relationship.js';
 import { getActivity } from '../schedule/mySchedule.js';
-import { setMood, getMoodsDescription } from '../brain/mood/mood.js';
+import { setMood, getMood, getMoodsDescription } from '../brain/mood/mood.js';
+import { Api } from 'telegram/tl/index.js';
 
 const maxDialogLength = 15;
 const shortDialogLength = 4;
@@ -41,15 +42,16 @@ export async function answerToSinglePerson(client, person, message) {
   const activityDescription = await getActivity();
   if (activityDescription.includes('Не могу ответить')) return;
   const mindset = await brain.request(dialog.slice(-shortDialogLength));
+  console.log(mindset);
+  setReaction(client, mindset.mood, lastMessage[0]);
+
   const moodDescription = await getMoodsDescription(person.userId);
   person.talk.interest = mindset.interest;
 
   //#region ответ по чанкам
   const toSend = [];
-  const sendMessageFunction = async (message) => {
-    // const emojiRegex =
-    //   /[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]/gu;
-    toSend.push(message.replace(/[.]+$/, ''));
+  const sendMessageFunction = async (sentence) => {
+    toSend.push(sentence);
   };
   const fullAnswer = await generate(
     sendMessageFunction,
@@ -64,7 +66,7 @@ export async function answerToSinglePerson(client, person, message) {
   for (let i = 0; i < toSend.length; i++) {
     if (toSend[i] === toSend[i + 1]) continue;
     await client.sendMessage(person.username, {
-      message: toSend[i],
+      message: toSend[i].replace(/!$/, ''),
     });
   }
   // #endregion
@@ -97,3 +99,43 @@ const shouldAnswer = (message) => {
 
   return true;
 };
+
+async function setReaction(client, mood, message) {
+  const messageId = message.id;
+  const emotions = {
+    // playfulness: '🤪',
+    // pleased: '🤗',
+    confused: '😐',
+    disappointed: '😭',
+    // friendly: '🤗',
+    love: '🥰',
+    compassion: '🥰',
+    curiosity: '🤔',
+    tenderness: '🥰',
+    devotion: '🥰',
+    angry: '😡',
+    resentment: '😡',
+    sadness: '😢',
+    depressed: '😭',
+  };
+
+  const reaction = [];
+  const currentMood = await getMood(1057932677);
+  mood.forEach((emotion) => {
+    if (emotions[emotion] && currentMood[emotion] && currentMood[emotion] > 1) {
+      reaction.push(new Api.ReactionEmoji({ emoticon: emotions[emotion] }));
+    }
+  });
+
+  if (reaction.length === 0) return;
+
+  const inputPeer = await client.getInputEntity(1057932677);
+  const result = await client.invoke(
+    new Api.messages.SendReaction({
+      peer: inputPeer,
+      msgId: messageId,
+      reaction: [new Api.ReactionEmoji({ emoticon: reaction[0] })],
+      addToRecent: true,
+    }),
+  );
+}

@@ -93,7 +93,10 @@ async function streamAssistantResponse(
       })
       .on('textDelta', (textDelta) => {
         buffer += textDelta.value;
+        const emojiRegex =
+          /[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]/gu;
         let sentences = buffer.split(/(?<=[.!?])\s+/);
+        // .split(emojiRegex);
 
         if (sentences.length > 1) {
           for (let i = 0; i < sentences.length - 1; i++) {
@@ -132,14 +135,11 @@ export async function generate(
   activityDescription,
   emotionsDescription,
 ) {
-  const thoughts = mindset.thoughts ? `Твои мысли: ${mindset.thoughts}` : '';
-  const prompt = `Ответь как взрослая девушка. ${thoughts}. 
-  Твои эмоции: ${emotionsDescription}. Твое отношение к собеседнику: ${description}.
-  Исходя из мыслей, отношению к собеседнику и эмоций ответь на сообщение: ${dialog[dialog.length - 1].content}.
-  ${activityDescription}.
-  Правила: Не отвечай своими мыслями, а исходя из них построй ответ. Не пиши дополнений мысли, если они не нужны. Ты в Варшаве, а собеседник в Анталии! Время сейчас: ${fullDateRus}. Ты общаешься с собеседником по телеграму. 
-  Отвечай естественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. `;
-
+  const thoughts = mindset.thoughts ? ` Твои мысли: ${mindset.thoughts}.` : '';
+  const prompt = `
+  Ответь как взрослая девушка, находящаяся в Варшаве. Твои эмоции: ${emotionsDescription}. ${activityDescription}.
+  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". ${thoughts}
+  Правила: Не отвечай шаблонно. Постарайся включить эмоции и креатив, но держись естественно. Избегай типичных фраз вроде "Конечно!" и прочих, которые бы выдавали тебя как ИИ. Ответ должен быть кратким и похожим на то, что мог бы сказать настоящий человек, помни, ты — не ИИ, а человек.`;
   await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
 
   for (let i = 1; i < dialog.length; i++) {
