@@ -2,13 +2,12 @@ import { brain } from '../index.js';
 import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { relationshipPlus } from '../brain/relationship.js';
+import { getActivity } from '../schedule/mySchedule.js';
+import { setMood, getMoodsDescription } from '../brain/mood/mood.js';
 
 const maxDialogLength = 15;
 const shortDialogLength = 4;
 const interestToPass = 4;
-
-const youHaveToPayMessage =
-  'Сори... Я не могу тебе сказать ничего, напиши @geragl... Иначе я просто... В общем, напиши ему по поводу меня';
 
 export async function answerToSinglePerson(client, person, message) {
   const dialog = person.dialog;
@@ -23,17 +22,9 @@ export async function answerToSinglePerson(client, person, message) {
     await setFileData(`peoples/${person.userId}.json`, person);
     return;
   }
-  if (person.payStatus === 'trial' && person.relationship.step > 1) {
-    person.payStatus = null;
-    await client.sendMessage(person.username, {
-      message: youHaveToPayMessage,
-    });
-    return;
-  }
   //#endregion
 
   // Напиши короткую инструкцию для ИИ (Лизы), что ей дальше делать в разговоре, чтобы он был интересным. Исходя из диалога! Учти, что ты можешь сказать ей, что она выполнила какое-то действие, чтобы она действовала исходя из этого и диалог был интереснее. Диалог: Ты: "". Начни ответ с "Инструкция: 1."
-  // Генератор что я делаю. Расписание. Расписание может генерить когда писать! Типо: освобождаюсь от работы: могу писать
 
   dialog.push({
     role: 'user',
@@ -47,8 +38,10 @@ export async function answerToSinglePerson(client, person, message) {
 
   //#region ответ
 
+  const activityDescription = await getActivity();
+  if (activityDescription.includes('Не могу ответить')) return;
   const mindset = await brain.request(dialog.slice(-shortDialogLength));
-  console.log(mindset);
+  const moodDescription = await getMoodsDescription(person.userId);
   person.talk.interest = mindset.interest;
 
   //#region ответ по чанкам
@@ -63,9 +56,9 @@ export async function answerToSinglePerson(client, person, message) {
     dialog,
     mindset,
     person.relationship.description,
+    activityDescription,
+    moodDescription,
   );
-  console.log(toSend);
-
   if (fullAnswer === '' && toSend.length === 0) return;
 
   for (let i = 0; i < toSend.length; i++) {
@@ -90,8 +83,9 @@ export async function answerToSinglePerson(client, person, message) {
     person.relationship,
   );
   person.relationship = newRelationship ?? person.relationship;
-  person.mood = mindset.mood;
+  await setMood(mindset.mood, person.userId);
   person.dialog = dialog;
+  person.activityDescription = activityDescription;
   await setFileData(`peoples/${person.userId}.json`, person);
   // #endregion
 }

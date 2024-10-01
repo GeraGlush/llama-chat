@@ -1,6 +1,7 @@
 import { setFileData } from '../../helpers.js';
 import { NewMessage } from 'telegram/events/index.js';
 import { answerToSinglePerson } from './answer.js';
+import { Api } from 'telegram';
 
 let talking = false;
 
@@ -21,10 +22,57 @@ async function handleNewMessage(update, client, person) {
 
     const messageDate = new Date(update.message.date * 1000);
     if (messageDate > person.lastResponseTime) {
-      const text = update.message.message;
-      await answerToSinglePerson(client, person, text);
-      person.lastResponseTime = new Date().getTime();
+      // Проверка, является ли сообщение голосовым
+      if (update.message.media && update.message.media.document) {
+        const isVoiceMessage =
+          update.message.media.document.mimeType.startsWith('audio/ogg');
 
+        if (isVoiceMessage) {
+          // Пересылаем голосовое сообщение боту @AudioMessBot
+          const forwardedMessage = await client.invoke(
+            new Api.messages.ForwardMessages({
+              fromPeer: update.message.peerId,
+              id: [update.message.id],
+              toPeer: 'AudioMessBot',
+            }),
+          );
+
+          // Ожидание ответа от @AudioMessBot
+          const botPeer = await client.getEntity('AudioMessBot');
+          let recognizedText = '';
+
+          try {
+            // Устанавливаем цикл ожидания ответа с таймаутом
+            for (let i = 0; i < 10; i++) {
+              // Пытаемся 10 раз, с интервалом в 2 секунды
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+              const history = await client.invoke(
+                new Api.messages.GetHistory({
+                  peer: botPeer,
+                  limit: 1,
+                }),
+              );
+
+              const lastMessage = history.messages[0];
+              if (lastMessage && lastMessage.message) {
+                recognizedText = lastMessage.message.replace('🗣 ', '');
+                break;
+              }
+            }
+          } catch (error) {
+            console.error('Error while waiting for bot response:', error);
+          }
+
+          if (recognizedText) {
+            await answerToSinglePerson(client, person, recognizedText);
+          }
+        }
+      } else {
+        const text = update.message.message;
+        await answerToSinglePerson(client, person, text);
+      }
+
+      person.lastResponseTime = new Date().getTime();
       await setFileData(`peoples/${userId}.json`, person);
     }
   }

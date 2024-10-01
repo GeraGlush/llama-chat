@@ -1,81 +1,20 @@
+Connecting...
+[33m[2024-10-01T12:18:58.875] [INFO] - [Running gramJS version 2.21.1][0m
+[33m[2024-10-01T12:18:58.902] [INFO] - [Connecting to 149.154.167.91:80/TCPFull...][0m
+[33m[2024-10-01T12:18:59.004] [INFO] - [Connection to 149.154.167.91:80/TCPFull complete!][0m
+[33m[2024-10-01T12:18:59.006] [INFO] - [Using LAYER 179 for initial connect][0m
+You should now be connected.
+Listening for new messages from geragl...
+Connecting done
+New message from geragl
+New message from geragl
 {
-  originalUpdate: {
-    CONSTRUCTOR_ID: 826001400,
-    SUBCLASS_OF_ID: 2331323052,
-    className: 'UpdateShortMessage',
-    classType: 'constructor',
-    flags: 0,
-    out: false,
-    mentioned: false,
-    mediaUnread: false,
-    silent: false,
-    id: 21038,
-    userId: Integer { value: 1057932677n },
-    message: 'd',
-    pts: 50448,
-    ptsCount: 1,
-    date: 1722070982,
-    fwdFrom: null,
-    viaBotId: null,
-    replyTo: null,
-    entities: null,
-    ttlPeriod: null
-  },
-  message: {
-    CONSTRUCTOR_ID: 592953125,
-    SUBCLASS_OF_ID: 2030045667,
-    className: 'Message',
-    classType: 'constructor',
-    out: false,
-    mentioned: false,
-    mediaUnread: false,
-    silent: false,
-    post: undefined,
-    fromScheduled: undefined,
-    legacy: undefined,
-    editHide: undefined,
-    ttlPeriod: null,
-    id: 21038,
-    fromId: {
-      CONSTRUCTOR_ID: 1498486562,
-      SUBCLASS_OF_ID: 47470215,
-      className: 'PeerUser',
-      classType: 'constructor',
-      userId: [Integer]
-    },
-    peerId: {
-      CONSTRUCTOR_ID: 1498486562,
-      SUBCLASS_OF_ID: 47470215,
-      className: 'PeerUser',
-      classType: 'constructor',
-      userId: [Integer]
-    },
-    fwdFrom: null,
-    viaBotId: null,
-    replyTo: null,
-    date: 1722070982,
-    message: 'd',
-    media: undefined,
-    replyMarkup: undefined,
-    entities: null,
-    views: undefined,
-    forwards: undefined,
-    replies: undefined,
-    editDate: undefined,
-    pinned: undefined,
-    postAuthor: undefined,
-    groupedId: undefined,
-    restrictionReason: undefined,
-    action: undefined,
-    noforwards: undefined,
-    reactions: undefined,
-    flags: undefined,
-    invertMedia: undefined,
-    flags2: undefined,
-    offline: undefined,
-    fromBoostsApplied: undefined,
-    savedPeerId: undefined,
-    viaBusinessBotId: undefined,
-    quickReplyShortcutId: undefined
-  }
+  mood: [ 'happy', 'playfulness', 'neutral' ],
+  interest: 7,
+  relPlus: 3,
+  thoughts: 'Рада, что он думает о мне, даже когда работает. Возможно, наши отношения его вдохновляют.'
 }
+Ответь как взрослая девушка. Твои мысли: Рада, что он думает о мне, даже когда работает. Возможно, наши отношения его вдохновляют.. Твои эмоции: undefined. Твое отношение к собеседнику: Мы встречаемся.
+  Исходя из мыслей, отношению к собеседнику и эмоций ответь на сообщение: Прям о мне?. Не отвечай своими мыслями, а исходя из них построй ответ. Не пиши дополнений мысли, если они не нужны. Правила: Ты общаешься с собеседником по телеграму. 
+  Отвечай естественно, как человек! Ты живой человек с своей волей, чувствами и эмоциями! Не описывай свои действия в **. Отвечай кратко. Включи креатив. Помни, ты не ИИ, ты человек. 
+   Ты в Варшаве, а собеседник в Анталии! Время сейчас: 1 октября 2024 г., 11:18, вторник. Немного волнуюсь, ощущается легкая тревожность..

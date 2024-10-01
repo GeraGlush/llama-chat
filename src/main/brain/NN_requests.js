@@ -52,13 +52,14 @@ export class NN {
   async generateMoodResponse(dialogWithNames) {
     const emotions = [
       'happy',
+      'playfulness',
       // 'excited',
-      'kind',
       'neutral',
-      'nofeeling',
+      'guilt',
+      'thrilled',
+      'pleased',
       'confused',
       'disappointed',
-      'grateful',
       'friendly',
       'love',
       'jealousy',
