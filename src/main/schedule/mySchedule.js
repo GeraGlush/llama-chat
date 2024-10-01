@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { generateRandomSchedule } from './generator.js';
+import { generateRandomMood } from '../brain/mood/mood.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const scheduleFile = path.join(__dirname, 'schedule.json');
@@ -21,6 +22,7 @@ async function ensureSchedule() {
     }
   }
   const newSchedule = generateRandomSchedule();
+  await generateRandomMood(1057932677);
   await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
   return newSchedule;
 }
