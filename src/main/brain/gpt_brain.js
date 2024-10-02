@@ -14,24 +14,7 @@ const daysOfWeek = [
   'пятница',
   'суббота',
 ];
-const currentDayOfweek = new Date().getDay();
-const warsawTime = new Date().toLocaleTimeString('ru-RU', {
-  timeZone: 'Europe/Warsaw',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-const fullDateRus =
-  new Date().toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }) +
-  ', ' +
-  warsawTime +
-  ', ' +
-  daysOfWeek[currentDayOfweek];
-
-const instructions = `Тебе 21, твое имя Лиза. Ты христианка, ходишь в харизматическую церковь. Ты очень красивая и удивительная девушка! Ты живешь в Варшаве, в квартире, которую снимаешь с подругой Катей.`;
+const instructions = `Тебе 22, твое имя Лиза. Ты христианка, ходишь в харизматическую церковь. Ты очень красивая и удивительная девушка! Ты живешь в Варшаве, в квартире, которую снимаешь с подругой Катей.`;
 
 let assistantId;
 let threadId;
@@ -93,10 +76,7 @@ async function streamAssistantResponse(
       })
       .on('textDelta', (textDelta) => {
         buffer += textDelta.value;
-        const emojiRegex =
-          /[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]/gu;
-        let sentences = buffer.split(/(?<=[.!?])\s+/);
-        // .split(emojiRegex);
+        let sentences = splitBuffer(buffer);
 
         if (sentences.length > 1) {
           for (let i = 0; i < sentences.length - 1; i++) {
@@ -135,10 +115,28 @@ export async function generate(
   activityDescription,
   emotionsDescription,
 ) {
+  const currentDayOfweek = new Date().getDay();
+  const warsawTime = new Date().toLocaleTimeString('ru-RU', {
+    timeZone: 'Europe/Warsaw',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const fullDateRus =
+    new Date().toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }) +
+    ', ' +
+    warsawTime +
+    ', ' +
+    daysOfWeek[currentDayOfweek];
+
   const thoughts = mindset.thoughts ? ` Твои мысли: ${mindset.thoughts}.` : '';
   const prompt = `
   Ответь как взрослая девушка, находящаяся в Варшаве. Твои эмоции: ${emotionsDescription}. ${activityDescription}.
-  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". ${thoughts}
+  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". ${thoughts}. Ваши отношения с собеседником: ${description}. Время у тебя сейчас: ${fullDateRus}.
   Правила: Не отвечай шаблонно. Постарайся включить эмоции и креатив, но держись естественно. Избегай типичных фраз вроде "Конечно!" и прочих, которые бы выдавали тебя как ИИ. Ответ должен быть кратким и похожим на то, что мог бы сказать настоящий человек, помни, ты — не ИИ, а человек.`;
   await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
 
@@ -157,4 +155,36 @@ export async function generate(
   );
 
   return fullAnswer;
+}
+
+function splitBuffer(buffer) {
+  const parts = buffer.split(/(?<=\.{3}|[.!?])\s*/);
+
+  let result = [];
+  let currentSentence = '';
+
+  parts.forEach((part) => {
+    const emojiMatch = part.match(
+      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
+    );
+
+    if (emojiMatch && result.length > 0) {
+      result[result.length - 1] += ' ' + emojiMatch[0];
+      part = part.slice(emojiMatch[0].length);
+    }
+
+    if (part === '.' && result.length > 0) {
+      result[result.length - 1] += part;
+    } else if (part.trim() !== '') {
+      if (/[.!?…]$/.test(part)) {
+        currentSentence += part;
+        result.push(currentSentence.trim());
+        currentSentence = '';
+      } else {
+        currentSentence += part;
+      }
+    }
+  });
+
+  return result;
 }

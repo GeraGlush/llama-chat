@@ -26,16 +26,23 @@ async function ensureSchedule() {
   await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
   return newSchedule;
 }
-
 async function getCurrentActivity(activities) {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  const warsawTime = new Date().toLocaleTimeString('ru-RU', {
+    timeZone: 'Europe/Warsaw',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const currentHour = warsawTime.split(':')[0];
+  const currentMinute = warsawTime.split(':')[1];
   const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
   const currentActivity = activities.find((entry) => {
     const [startTime, endTime] = entry.time.split('-').map((t) => t.trim());
-    return currentTime >= startTime && currentTime < endTime;
+    if (endTime > startTime) {
+      return currentTime >= startTime && currentTime < endTime;
+    } else {
+      return currentTime >= startTime || currentTime < endTime;
+    }
   }) || { activity: 'Ничем не занята', hurry: [0] };
 
   return currentActivity;
@@ -44,6 +51,7 @@ async function getCurrentActivity(activities) {
 export async function getActivity() {
   const activities = await ensureSchedule();
   const activity = await getCurrentActivity(activities);
+
   const activityDescription = getActivityDescription(activity);
   return activityDescription;
 }

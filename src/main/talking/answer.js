@@ -7,7 +7,7 @@ import { setMood, getMood, getMoodsDescription } from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
 
 const maxDialogLength = 15;
-const shortDialogLength = 4;
+const shortDialogLength = 2;
 const interestToPass = 4;
 
 export async function answerToSinglePerson(client, person, message) {
@@ -66,7 +66,7 @@ export async function answerToSinglePerson(client, person, message) {
   for (let i = 0; i < toSend.length; i++) {
     if (toSend[i] === toSend[i + 1]) continue;
     await client.sendMessage(person.username, {
-      message: toSend[i].replace(/!$/, ''),
+      message: toSend[i].replace(/[!.]+$/, ''),
     });
   }
   // #endregion
@@ -103,39 +103,38 @@ const shouldAnswer = (message) => {
 async function setReaction(client, mood, message) {
   const messageId = message.id;
   const emotions = {
-    // playfulness: '🤪',
-    // pleased: '🤗',
-    confused: '😐',
-    disappointed: '😭',
-    // friendly: '🤗',
-    love: '🥰',
-    compassion: '🥰',
-    curiosity: '🤔',
-    tenderness: '🥰',
-    devotion: '🥰',
-    angry: '😡',
-    resentment: '😡',
-    sadness: '😢',
-    depressed: '😭',
+    playfulness: '❤️',
+    pleased: '❤️',
+    friendly: '❤️',
+    love: '❤️',
+    tenderness: '❤️',
+    devotion: '❤️',
   };
 
   const reaction = [];
   const currentMood = await getMood(1057932677);
   mood.forEach((emotion) => {
-    if (emotions[emotion] && currentMood[emotion] && currentMood[emotion] > 1) {
-      reaction.push(new Api.ReactionEmoji({ emoticon: emotions[emotion] }));
+    if (
+      emotions[emotion] &&
+      currentMood[emotion] &&
+      currentMood[emotion] > 0.5
+    ) {
+      reaction.push(new Api.ReactionEmoji({ emoticon: '❤️' }));
     }
   });
 
   if (reaction.length === 0) return;
-
-  const inputPeer = await client.getInputEntity(1057932677);
-  const result = await client.invoke(
-    new Api.messages.SendReaction({
-      peer: inputPeer,
-      msgId: messageId,
-      reaction: [new Api.ReactionEmoji({ emoticon: reaction[0] })],
-      addToRecent: true,
-    }),
-  );
+  try {
+    const inputPeer = await client.getInputEntity(1057932677);
+    await client.invoke(
+      new Api.messages.SendReaction({
+        peer: inputPeer,
+        msgId: messageId,
+        reaction: [new Api.ReactionEmoji({ emoticon: '❤️' })],
+        addToRecent: true,
+      }),
+    );
+  } catch (e) {
+    console.log(reaction, 'reaction is forbidden');
+  }
 }

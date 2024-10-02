@@ -166,16 +166,24 @@ export function generateRandomSchedule() {
     },
   ];
 
+  schedule.push({
+    time: `00-${getRandomTime(9, 10)}`,
+    hurry: 4,
+    activity: 'сон',
+  });
+
   if (isWorkingDay(weekDay)) {
     schedule.push({
-      time: `${getRandomTime(8, 9)}-${getRandomTime(14, 16)}`,
+      time: `${getRandomTime(9, 10)}-${getRandomTime(14, 16)}`,
       hurry: Math.floor(Math.random() * 3) + 2,
       activity: 'работаешь',
     });
   }
 
   function addActivity(activity) {
-    const startTime = getRandomTime(8, 21);
+    const startTime = isWorkingDay(weekDay)
+      ? schedule[schedule.length - 1].time.split('-')[1]
+      : getRandomTime(10, 14);
     const endTime = getNextTime(startTime, activity.duration);
     const activityTime = `${startTime}-${endTime}`;
     if (activity.isInCity) {
@@ -221,7 +229,7 @@ export function generateRandomSchedule() {
   }
 
   schedule.push({
-    time: `${getRandomTime(22, 23)}-${getRandomTime(7, 9)}`,
+    time: `${getRandomTime(22, 23)}-00`,
     hurry: 4,
     activity: 'сон',
   });

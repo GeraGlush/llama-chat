@@ -70,12 +70,37 @@ export async function setMood(newMoods, userId) {
     'depressed',
   ];
 
+  const emotionsPower = {
+    happy: 0.1,
+    playfulness: 0.3,
+    neutral: 0.1,
+    guilt: 0.5,
+    thrilled: 1,
+    pleased: 1,
+    confused: 1,
+    disappointed: 1,
+    friendly: 1,
+    love: 1.5,
+    jealousy: 2.5,
+    compassion: 1,
+    curiosity: 1,
+    tenderness: 2.5,
+    devotion: 1.5,
+    angry: 2,
+    resentment: 1,
+    audacious: 3,
+    sadness: 2,
+    anxious: 1,
+    calm: 0.5,
+    depressed: 2,
+  };
+
   const conflicts = {
     happy: ['sadness', 'depressed', 'guilt'],
     sadness: ['happy', 'thrilled', 'pleased'],
     angry: ['calm', 'pleased', 'friendly'],
     calm: ['angry', 'resentment'],
-    depressed: ['happy', 'thrilled', 'pleased'],
+    depressed: ['happy', 'pleased'],
     anxious: ['calm', 'happy'],
   };
   const person = await getFileData(`peoples/${userId}.json`);
@@ -87,9 +112,9 @@ export async function setMood(newMoods, userId) {
   newMoods.forEach((newMood) => {
     if (emotions.includes(newMood)) {
       if (person.mood[newMood]) {
-        person.mood[newMood] += 1;
+        person.mood[newMood] += emotionsPower[newMood];
       } else {
-        person.mood[newMood] = 1;
+        person.mood[newMood] = emotionsPower[newMood];
       }
     } else {
       person.mood[newMood] = 0;
@@ -108,11 +133,10 @@ export async function setMood(newMoods, userId) {
 
   Object.keys(person.mood).forEach((mood) => {
     if (!newMoods.includes(mood) && person.mood[mood] > 0) {
-      person.mood[mood] -= 0.3;
+      person.mood[mood] -= 0.2;
     }
   });
 
-  console.log('Mood:', person.mood);
   await setFileData(`peoples/${userId}.json`, person);
 }
 
@@ -132,15 +156,6 @@ export async function getMoodsDescription(userId) {
       }
     }
   });
-
-  console.log('----------'); // log
-  console.log(
-    descriptionsMood
-      .sort((a, b) => b.length - a.length)
-      .splice(3)
-      .join(' '),
-  );
-  console.log('----------');
 
   return descriptionsMood
     .sort((a, b) => b.length - a.length)
