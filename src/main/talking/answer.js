@@ -7,7 +7,7 @@ import { setMood, getMood, getMoodsDescription } from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
 
 const maxDialogLength = 15;
-const shortDialogLength = 2;
+const shortDialogLength = 3;
 const interestToPass = 4;
 
 export async function answerToSinglePerson(client, person, message) {
@@ -56,7 +56,6 @@ export async function answerToSinglePerson(client, person, message) {
   const fullAnswer = await generate(
     sendMessageFunction,
     dialog,
-    mindset,
     person.relationship.description,
     activityDescription,
     moodDescription,
@@ -74,7 +73,6 @@ export async function answerToSinglePerson(client, person, message) {
   dialog.push({
     role: 'assistant',
     content: fullAnswer,
-    thoughts: mindset.thoughts,
   });
 
   //#endregion

@@ -10,7 +10,6 @@ export class NN {
       return {
         role: message.speaker,
         name: message.name,
-        thoughts: message.thoughts,
         content: message.content.replace(
           'Последнее смс (реагируй на него):',
           '',
@@ -33,17 +32,10 @@ export class NN {
     const interestPromise = this.generateInterest(dialogWithNames);
     const prevData = await Promise.all([interestPromise, moodPromise]);
 
-    const thoughtPromise =
-      prevData[0] >= 6
-        ? this.generateThoughtsResponse(dialogWithNames, prevData[1])
-        : null;
-    const thoughts = thoughtPromise ? await thoughtPromise : '';
-
     const finalResponse = {
       mood: prevData[1] ?? [],
       interest: prevData[0],
       relPlus: this.countRewar(prevData[1]),
-      thoughts,
     };
 
     return finalResponse;
@@ -109,36 +101,6 @@ export class NN {
       }
     }
     return array;
-  }
-
-  async generateThoughtsResponse(dialogWithNames, mood) {
-    const prompt = `Ты не ИИ, ты женский мозг.
-      Твоя задача - сформулировать ЛОГИЧНУЮ мысль НА ОСНОВЕ диалога. 
-      Если сообщение не слишком важное или диалог не развивается дальше - ничего не думай, отправив ".". Тебе нельзя генерировать флирт или пошлую мысль.
-      В ответ дай только свою короткие мысль. Не описывай свои действия. Ты мозг. Генерируй мысль на русском и исходя из диалога и твоих эмоий сейчас.
-      Твои эмоции: ${mood.join(', ')}. Мысль, беря их в учет. Не мысли по своему, а исходя из диалога и эмоций.
-      Диалог: ${dialogWithNames}. Сгенерируй на основе диалога и эмоций мысль. Не отвечай на диалог!
-    `;
-
-    const model = 'mistralai/mixtral-8x7b-instruct-v0.1';
-    const input = {
-      top_p: 0.9,
-      prompt,
-      system_prompt: `Ты женский мозг. Твоя задача генирировать одну короткую мысль на основе диалога и эмоций. Не отвечай на диалог!`,
-      min_tokens: 1,
-      max_tokens: 70,
-      temperature: 0.6,
-      presence_penalty: 0.3,
-    };
-
-    const response = await this.replicate
-      .run(model, { input })
-      .catch((err) => console.error(err));
-
-    return response
-      .join('')
-      .replace(/\*.*?\*/g, '')
-      .replace('\n', '');
   }
 
   async generateInterest(dialogWithNames) {

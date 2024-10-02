@@ -110,7 +110,6 @@ async function streamAssistantResponse(
 export async function generate(
   sendMessageFunction,
   dialog,
-  mindset,
   description,
   activityDescription,
   emotionsDescription,
@@ -133,7 +132,6 @@ export async function generate(
     ', ' +
     daysOfWeek[currentDayOfweek];
 
-  const thoughts = mindset.thoughts ? ` Твои мысли: ${mindset.thoughts}.` : '';
   const prompt = `
   Ответь как взрослая девушка, находящаяся в Варшаве. Твои эмоции: ${emotionsDescription}. ${activityDescription}.
   Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". Ваши отношения с собеседником: ${description}. Время у тебя сейчас: ${fullDateRus}.
