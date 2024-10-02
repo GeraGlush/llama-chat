@@ -136,7 +136,7 @@ export async function generate(
   const thoughts = mindset.thoughts ? ` Твои мысли: ${mindset.thoughts}.` : '';
   const prompt = `
   Ответь как взрослая девушка, находящаяся в Варшаве. Твои эмоции: ${emotionsDescription}. ${activityDescription}.
-  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". ${thoughts}. Ваши отношения с собеседником: ${description}. Время у тебя сейчас: ${fullDateRus}.
+  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". Ваши отношения с собеседником: ${description}. Время у тебя сейчас: ${fullDateRus}.
   Правила: Не отвечай шаблонно. Постарайся включить эмоции и креатив, но держись естественно. Избегай типичных фраз вроде "Конечно!" и прочих, которые бы выдавали тебя как ИИ. Ответ должен быть кратким и похожим на то, что мог бы сказать настоящий человек, помни, ты — не ИИ, а человек.`;
   await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
 
