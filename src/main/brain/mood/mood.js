@@ -1,4 +1,5 @@
 import { getFileData, setFileData } from '../../../helpers.js';
+import { emotions } from './emotions.js';
 
 export async function getMood(userId) {
   const data = await getFileData(`peoples/${userId}.json`);
@@ -6,30 +7,6 @@ export async function getMood(userId) {
 }
 
 function getRandomMood() {
-  const emotions = [
-    'happy',
-    'playfulness',
-    'neutral',
-    'guilt',
-    'thrilled',
-    'pleased',
-    'confused',
-    'disappointed',
-    'friendly',
-    'love',
-    'jealousy',
-    'compassion',
-    'curiosity',
-    'tenderness',
-    'devotion',
-    'angry',
-    'resentment',
-    'audacious',
-    'sadness',
-    'anxious',
-    'calm',
-    'depressed',
-  ];
   return emotions[Math.floor(Math.random() * emotions.length)];
 }
 
@@ -45,31 +22,6 @@ export async function generateRandomMood(userId) {
 }
 
 export async function setMood(newMoods, userId) {
-  const emotions = [
-    'happy',
-    'playfulness',
-    'neutral',
-    'guilt',
-    'thrilled',
-    'pleased',
-    'confused',
-    'disappointed',
-    'friendly',
-    'love',
-    'jealousy',
-    'compassion',
-    'curiosity',
-    'tenderness',
-    'devotion',
-    'angry',
-    'resentment',
-    'audacious',
-    'sadness',
-    'anxious',
-    'calm',
-    'depressed',
-  ];
-
   const emotionsPower = {
     happy: 0.1,
     playfulness: 0.3,
@@ -86,6 +38,7 @@ export async function setMood(newMoods, userId) {
     curiosity: 1,
     tenderness: 2.5,
     devotion: 1.5,
+    talkativeness: 0.5,
     angry: 2,
     resentment: 1,
     audacious: 3,
@@ -141,8 +94,11 @@ export async function setMood(newMoods, userId) {
 }
 
 export async function getMoodsDescription(userId) {
+  console.log('getMoodsDescription');
+
   const mood = await getMood(userId);
   const descriptions = await getFileData('storage/moodsDescription.json');
+  console.log('+');
 
   const descriptionsMood = [];
   Object.entries(mood).forEach(([moodName, moodValue]) => {
@@ -157,8 +113,5 @@ export async function getMoodsDescription(userId) {
     }
   });
 
-  return descriptionsMood
-    .sort((a, b) => b.length - a.length)
-    .splice(3)
-    .join(' ');
+  return descriptionsMood.join('\n');
 }

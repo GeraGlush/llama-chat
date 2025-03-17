@@ -1,35 +1,33 @@
 import { getFileData } from '../../helpers.js';
 
 export async function relationshipPlus(relPlus, relationshipWithPeople) {
+  const relationships = await getFileData('storage/relationship.json');
+
   if (!relationshipWithPeople) {
-    const newRel = {};
-    newRel.step = 1;
-    newRel.points = 10;
-    newRel.description = relationships.steps[1].description;
-    return newRel;
+    return {
+      step: 1,
+      points: 10,
+      description: relationships.steps[1].description,
+    };
   }
 
   if (typeof relPlus !== 'number' || relPlus === 0)
     return relationshipWithPeople;
-  const relationships = await getFileData('storage/relationship.json');
-  const rel = relationshipWithPeople;
-  const currentStep = rel.step;
-  rel.points += relPlus;
 
-  const nextRelationship = relationships.steps[currentStep + 1];
-  if (!nextRelationship) return rel;
+  let { step, points } = relationshipWithPeople;
+  points += relPlus;
 
-  if (relationshipWithPeople.points >= nextRelationship.pointsToGet) {
-    rel.step = currentStep + 1;
-
-    if (nextRelationship.message !== '' && nextRelationship.message) {
-      rel.message = nextRelationship.message;
-      return rel;
-    }
+  const nextStep = relationships.steps[step + 1];
+  if (nextStep && points >= nextStep.pointsToGet) {
+    step++;
   }
 
-  rel.description = relationships.steps[rel.step].description;
-  return rel;
+  return {
+    step,
+    points,
+    description: relationships.steps[step].description,
+    message: relationships.steps[step]?.message || null,
+  };
 }
 
 export async function getRelationship(userId) {

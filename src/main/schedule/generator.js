@@ -1,173 +1,13 @@
-export function generateRandomSchedule() {
+import { getFileData } from '../../helpers.js';
+
+export async function generateRandomSchedule() {
   const weekDay = new Date().getDay(); // 0 - Sunday, 1 - Monday, ..., 6 - Saturday
   const schedule = [];
 
-  const activities = [
-    {
-      name: 'кушаешь еду',
-      probability: 100,
-      duration: 0.5,
-      hurry: [0, 1],
-      isInCity: false,
-    },
-    {
-      name: 'в церкви',
-      probability: weekDay === 0 ? 90 : 0,
-      duration: 2,
-      hurry: [1, 2],
-      isInCity: true,
-    },
-    {
-      name: 'готовлюсь к экзаменам',
-      probability: isWorkingDay(weekDay) ? 20 : 0,
-      duration: 2,
-      hurry: [2, 4],
-      isInCity: false,
-    },
-    {
-      name: 'тренеруешься в тренажёрном зал',
-      probability: 50,
-      duration: 1,
-      hurry: [1],
-      isInCity: true,
-    },
-    {
-      name: 'встречаешься с подругами в кафе',
-      probability: 45,
-      duration: 1.5,
-      hurry: [1],
-      isInCity: true,
-    },
-    {
-      name: 'шопинг',
-      probability: 40,
-      duration: 1.5,
-      hurry: [1, 2],
-      isInCity: true,
-    },
-    {
-      name: 'учишься',
-      probability: isWorkingDay(weekDay) ? 0 : 70,
-      duration: 3,
-      hurry: [0, 1, 3],
-      isInCity: true,
-    },
-    {
-      name: 'отдыхаешь',
-      probability: 90,
-      duration: 2,
-      hurry: [0],
-      isInCity: false,
-    },
-    {
-      name: 'гуляешь',
-      probability: 80,
-      duration: 1.5,
-      hurry: [0],
-      isInCity: true,
-    },
-    {
-      name: 'читаешь',
-      probability: 70,
-      duration: 1,
-      hurry: [0, 4],
-      isInCity: false,
-    },
-    {
-      name: 'смотришь сериал',
-      probability: 50,
-      duration: 1.5,
-      hurry: [0],
-      isInCity: false,
-    },
-    {
-      name: 'играешь в игры',
-      probability: 40,
-      duration: 1.5,
-      hurry: [0],
-      isInCity: false,
-    },
-    {
-      name: 'общаешься с друзьями',
-      probability: 30,
-      duration: 2,
-      hurry: [1, 2],
-      isInCity: true,
-    },
-    {
-      name: 'прогуливаешься',
-      probability: 70,
-      duration: 1.5,
-      hurry: [0],
-      isInCity: true,
-    },
-    {
-      name: 'посещаешь мероприятие',
-      probability: 20,
-      duration: 2,
-      hurry: [2, 3],
-      isInCity: true,
-    },
-    {
-      name: 'покупаешь продукты',
-      probability: 50,
-      duration: 1,
-      hurry: [1],
-      isInCity: false,
-    },
-    {
-      name: 'делаешь уборку',
-      probability: 40,
-      duration: 1.5,
-      hurry: [1],
-      isInCity: false,
-    },
-    {
-      name: 'готовишь',
-      probability: 60,
-      duration: 1.5,
-      hurry: [1],
-      isInCity: false,
-    },
-    {
-      name: 'посещаешь родственников',
-      probability: 30,
-      duration: 2,
-      hurry: [2],
-      isInCity: true,
-    },
-    {
-      name: 'проводишь время с друзьями',
-      probability: 50,
-      duration: 2,
-      hurry: [2],
-      isInCity: true,
-    },
-    {
-      name: 'пьешь кофе в кофейне',
-      probability: 40,
-      duration: 1.5,
-      hurry: [2],
-      isInCity: true,
-    },
-    {
-      name: 'встречаешься с друзьями',
-      probability: 30,
-      duration: 2,
-      hurry: [2],
-      isInCity: true,
-    },
-    {
-      name: 'смотришь фильм',
-      probability: 50,
-      duration: 1.5,
-      hurry: [0, 1],
-      isInCity: false,
-    },
-  ];
+  const activities = await getFileData('/src/main/schedule/activities.json');
 
   schedule.push({
-    time: `00-${getRandomTime(9, 10)}`,
+    time: `00-${getRandomTime(7, 8)}`,
     hurry: 4,
     activity: 'сон',
   });
@@ -229,7 +69,7 @@ export function generateRandomSchedule() {
   }
 
   schedule.push({
-    time: `${getRandomTime(22, 23)}-00`,
+    time: `${getRandomTime(21, 22)}-00`,
     hurry: 4,
     activity: 'сон',
   });

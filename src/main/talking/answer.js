@@ -2,7 +2,7 @@ import { brain } from '../index.js';
 import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { relationshipPlus } from '../brain/relationship.js';
-import { getActivity } from '../schedule/mySchedule.js';
+import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
 import { setMood, getMood, getMoodsDescription } from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
 
@@ -10,84 +10,139 @@ const maxDialogLength = 15;
 const shortDialogLength = 3;
 const interestToPass = 4;
 
-export async function answerToSinglePerson(client, person, message) {
-  const dialog = person.dialog;
-  const lastMessage = await client.getMessages(person.username, {
-    limit: 1,
-  });
-  person.talk.interest++;
+const pendingGenerations = new Map(); // Хранит ожидающие генерации
 
-  //#region фильтр сообщений
-  if (lastMessage[0].out) return;
-  if (person.talk.interest < interestToPass) {
+export async function answerToSinglePerson(client, person, message) {
+  if (!shouldAnswer(message)) return;
+
+  person.talk.interest = Math.min(person.talk.interest + 1, 10);
+  const lastMessage = await client.getMessages(person.username, { limit: 1 });
+
+  if (lastMessage[0]?.out || person.talk.interest < interestToPass) {
     await setFileData(`peoples/${person.userId}.json`, person);
     return;
   }
-  //#endregion
 
-  // Напиши короткую инструкцию для ИИ (Лизы), что ей дальше делать в разговоре, чтобы он был интересным. Исходя из диалога! Учти, что ты можешь сказать ей, что она выполнила какое-то действие, чтобы она действовала исходя из этого и диалог был интереснее. Диалог: Ты: "". Начни ответ с "Инструкция: 1."
+  // Проверяем, есть ли активная генерация
+  if (pendingGenerations.has(person.userId)) {
+    console.log(
+      `[answerToSinglePerson] Новая функция прекращена: сообщение добавлено к ожиданию для ${person.username}`,
+    );
+    pendingGenerations.get(person.userId).messages.push(message);
+    return;
+  }
 
-  dialog.push({
+  // Создаем запись о запущенной генерации
+  pendingGenerations.set(person.userId, {
+    messages: [message],
+    isGenerating: true,
+  });
+
+  person.dialog.push({ role: 'user', name: person.name, content: message });
+  if (person.dialog.length > maxDialogLength) person.dialog.shift();
+
+  console.log('activityDescription');
+  const activity = await getActivity(person.userId);
+  console.log(activity);
+
+  const activityDescription = activity.activityDescription;
+  person.activityDescription = activityDescription;
+
+  await waitForActivityDone(activity.hurry); // Ждем в соответствии с занятостью
+
+  let mindset = person.lastMindset;
+  let moodDescription = person.lastMoodDescription;
+
+  if (!/Ты не занята|Немного занята/.test(activityDescription)) {
+    console.log('Используем прошлые данные');
+
+    const moodPromise = brain
+      .request(person.dialog.slice(-shortDialogLength))
+      .then((res) => {
+        person.lastMindset = res;
+        return res?.mood || null;
+      })
+      .catch(console.error);
+
+    Promise.all([
+      getMoodsDescription(person.userId).then((res) => {
+        person.lastMoodDescription = res;
+      }),
+      relationshipPlus(person.talk.interest, person.relationship).then(
+        (res) => {
+          person.relationship = res ?? person.relationship;
+        },
+      ),
+    ]).catch(console.error);
+
+    moodPromise
+      .then((newMood) => {
+        if (newMood) {
+          setReaction(client, newMood, lastMessage[0], person.userId);
+        }
+      })
+      .catch(console.error);
+  } else {
+    console.log('Обновляем данные перед ответом');
+    [mindset, moodDescription] = await Promise.all([
+      brain.request(person.dialog.slice(-shortDialogLength)),
+      getMoodsDescription(person.userId),
+    ]);
+
+    relationshipPlus(person.talk.interest, person.relationship)
+      .then((res) => {
+        person.relationship = res ?? person.relationship;
+      })
+      .catch(console.error);
+
+    person.lastMindset = mindset;
+    person.lastMoodDescription = moodDescription;
+
+    setReaction(client, mindset.mood, lastMessage[0], person.userId);
+  }
+
+  const sendMessageFunction = async (sentence) => {
+    const message = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
+    await client.sendMessage(person.username, { message });
+  };
+
+  // Ждем и объединяем все накопленные сообщения
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  const combinedMessage = pendingGenerations
+    .get(person.userId)
+    .messages.join(' ');
+  pendingGenerations.delete(person.userId); // Убираем из ожидания
+
+  // Добавляем объединенное сообщение в диалог
+  person.dialog.push({
     role: 'user',
     name: person.name,
-    content: message,
+    content: combinedMessage,
   });
-  if (dialog.length >= maxDialogLength) dialog.shift();
-  if (dialog.length >= maxDialogLength) dialog.shift();
+  if (person.dialog.length > maxDialogLength) person.dialog.shift();
 
-  if (!shouldAnswer(message)) return;
+  console.log(`[generate] Запускаем генерацию ответа для ${person.username}`);
 
-  //#region ответ
-
-  const activityDescription = await getActivity();
-  if (activityDescription.includes('Не могу ответить')) return;
-  const mindset = await brain.request(dialog.slice(-shortDialogLength));
-  console.log(mindset);
-  setReaction(client, mindset.mood, lastMessage[0]);
-
-  const moodDescription = await getMoodsDescription(person.userId);
-  person.talk.interest = mindset.interest;
-
-  //#region ответ по чанкам
-  const toSend = [];
-  const sendMessageFunction = async (sentence) => {
-    toSend.push(sentence);
-  };
-  const fullAnswer = await generate(
+  const fullAnswerPromise = generate(
     sendMessageFunction,
-    dialog,
+    person.dialog,
     person.relationship.description,
     activityDescription,
     moodDescription,
   );
-  if (fullAnswer === '' && toSend.length === 0) return;
 
-  for (let i = 0; i < toSend.length; i++) {
-    if (toSend[i] === toSend[i + 1]) continue;
-    await client.sendMessage(person.username, {
-      message: toSend[i].replace(/[!.]+$/, ''),
-    });
-  }
-  // #endregion
+  const fullAnswer = await fullAnswerPromise;
+  person.dialog.push({ role: 'assistant', content: fullAnswer });
 
-  dialog.push({
-    role: 'assistant',
-    content: fullAnswer,
-  });
+  // Очистка статуса генерации
+  pendingGenerations.delete(person.userId);
 
-  //#endregion
-
-  // #region сохранение данных
-  const newRelationship = await relationshipPlus(
-    mindset.relPlus,
-    person.relationship,
-  );
-  person.relationship = newRelationship ?? person.relationship;
-  await setMood(mindset.mood, person.userId);
-  person.dialog = dialog;
-  person.activityDescription = activityDescription;
-  await setFileData(`peoples/${person.userId}.json`, person);
-  // #endregion
+  // Асинхронно сохраняем настроение и данные без ожидания
+  Promise.all([
+    mindset?.mood ? setMood(mindset.mood, person.userId) : Promise.resolve(),
+    setFileData(`peoples/${person.userId}.json`, person),
+  ]).catch(console.error);
 }
 
 const shouldAnswer = (message) => {
@@ -98,7 +153,7 @@ const shouldAnswer = (message) => {
   return true;
 };
 
-async function setReaction(client, mood, message) {
+async function setReaction(client, mood, message, userId) {
   const messageId = message.id;
   const emotions = {
     playfulness: '❤️',
@@ -110,7 +165,7 @@ async function setReaction(client, mood, message) {
   };
 
   const reaction = [];
-  const currentMood = await getMood(1057932677);
+  const currentMood = await getMood(userId);
   mood.forEach((emotion) => {
     if (
       emotions[emotion] &&
@@ -122,17 +177,13 @@ async function setReaction(client, mood, message) {
   });
 
   if (reaction.length === 0) return;
-  try {
-    const inputPeer = await client.getInputEntity(1057932677);
-    await client.invoke(
-      new Api.messages.SendReaction({
-        peer: inputPeer,
-        msgId: messageId,
-        reaction: [new Api.ReactionEmoji({ emoticon: '❤️' })],
-        addToRecent: true,
-      }),
-    );
-  } catch (e) {
-    console.log(reaction, 'reaction is forbidden');
-  }
+  const inputPeer = await client.getInputEntity(userId);
+  await client.invoke(
+    new Api.messages.SendReaction({
+      peer: inputPeer,
+      msgId: messageId,
+      reaction: [new Api.ReactionEmoji({ emoticon: '❤️' })],
+      addToRecent: true,
+    }),
+  );
 }

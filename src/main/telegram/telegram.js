@@ -24,16 +24,15 @@ export async function connect() {
 
   const client = new TelegramClient(
     session,
-    23781410,
-    'c051a14b63203ec645edbee1586b5843',
+    29888951,
+    'c2315bdaa91a43b557f38363853ecca3',
     {
       connectionRetries: 5,
     },
   );
 
   await client.start({
-    phoneNumber: '+905350594616',
-    password: async () => '13-201`o+O@!)#(amh*js1',
+    phoneNumber: '+7(929)-202-69-49',
     phoneCode: async () =>
       new Promise((resolve) =>
         rl.question('Please enter the code you received: ', resolve),

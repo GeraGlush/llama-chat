@@ -11,7 +11,7 @@ function formatScheduleDate() {
   return today.toISOString().split('T')[0];
 }
 
-async function ensureSchedule() {
+async function ensureSchedule(userId) {
   const today = formatScheduleDate();
   let scheduleExists = await fs.pathExists(scheduleFile);
 
@@ -21,8 +21,8 @@ async function ensureSchedule() {
       return scheduleData.activities;
     }
   }
-  const newSchedule = generateRandomSchedule();
-  await generateRandomMood(1057932677);
+  const newSchedule = await generateRandomSchedule();
+  await generateRandomMood(userId);
   await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
   return newSchedule;
 }
@@ -48,12 +48,64 @@ async function getCurrentActivity(activities) {
   return currentActivity;
 }
 
-export async function getActivity() {
-  const activities = await ensureSchedule();
+export async function getActivity(userId) {
+  const activities = await ensureSchedule(userId);
   const activity = await getCurrentActivity(activities);
 
   const activityDescription = getActivityDescription(activity);
-  return activityDescription;
+  return { ...activity, activityDescription };
+}
+
+let waitTime = 0;
+
+export async function waitForActivityDone(hurry) {
+  const waitTimeForActivity = {
+    // in minutes
+    1: [0, 0.5],
+    2: [3, 7],
+    3: [8, 20],
+  };
+
+  if (hurry === 4) {
+    let activity;
+    while (true) {
+      activity = await getActivity();
+      if (activity.hurry !== 4) break;
+      await new Promise((resolve) => setTimeout(resolve, 60000));
+    }
+    return;
+  }
+
+  if (hurry === 0 || !waitTimeForActivity[hurry]) {
+    return;
+  }
+
+  if (waitTime === 0) {
+    const [minTime, maxTime] = waitTimeForActivity[hurry];
+    waitTime = Math.random() * (maxTime - minTime) + minTime; // Дробное время
+
+    console.log(`Начинаем ожидание: ${waitTime.toFixed(1)} мин`);
+
+    while (waitTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      waitTime -= 0.1;
+      console.log(waitTime.toFixed(1));
+    }
+    waitTime = 0;
+  } else {
+    const randomTime = Math.random() * 3 + 1; // Дробное уменьшение на 1-3 мин
+    waitTime = Math.max(0, waitTime - randomTime);
+
+    console.log(
+      `Сокращаем ожидание: -${randomTime.toFixed(1)} мин, осталось ${waitTime.toFixed(1)} мин`,
+    );
+
+    while (waitTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      waitTime -= 0.1;
+      console.log(waitTime.toFixed(1));
+    }
+  }
 }
 
 function getActivityDescription(activity) {

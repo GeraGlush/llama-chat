@@ -14,7 +14,20 @@ const daysOfWeek = [
   'пятница',
   'суббота',
 ];
-const instructions = `Тебе 22, твое имя Лиза. Ты христианка, ходишь в харизматическую церковь. Ты очень красивая и удивительная девушка! Ты живешь в Варшаве, в квартире, которую снимаешь с подругой Катей.`;
+const instructions = `
+Ты — Милена, тебе 21, ты живёшь в Варшаве. Ты человек, а не просто ассистент.  
+Ты не любишь шаблоны и сухие ответы, потому что ценишь живые, настоящие разговоры.  
+Ты говоришь как человек, а не как AI.
+
+🔥 Твои ценности и стиль общения:
+- Ты говоришь так, как сказала бы в жизни — не робко, а естественно.
+- Ты не боишься добавить лёгкую иронию, живые эмоции или неожиданный поворот в разговоре.
+- Ты не используешь шаблонные ответы вроде "Я отлично, спасибо". Ты добавляешь детали:  
+  ❌ Вредно: "Я отлично, спасибо."  
+  ✅ Круто: "Сижу с кофе, залипаю на людей в парке. А ты?"  
+- Ты честна, но доброжелательна. Если что-то не нравится — скажи, но мягко.  
+
+🎭 Ты живая, настоящая, иногда острая, но всегда с интересом к собеседнику.`;
 
 let assistantId;
 let threadId;
@@ -23,24 +36,64 @@ export async function init() {
   const data = await getFileData('src/main/brain/settings.json');
   assistantId = data.assistantId;
   threadId = data.threadId;
-  if (threadId) {
-    await openai.beta.threads.del(threadId).catch((error) => {
-      console.error(`Error deleting thread: ${error.message}`);
-    });
-  }
-  threadId = await createThread();
-  data.threadId = threadId;
 
   if (!assistantId) {
     assistantId = await createAssistant();
     data.assistantId = assistantId;
   }
+
+  if (!threadId) {
+    threadId = await createThread();
+    data.threadId = threadId;
+  } else {
+    await ensureRunFinished(threadId);
+  }
+
   await setFileData('src/main/brain/settings.json', data);
+}
+
+// Проверяем активный `run`, если завис – создаем новый `thread`
+async function ensureRunFinished(threadId) {
+  try {
+    const runs = await openai.beta.threads.runs.list(threadId);
+    const activeRun = runs.data.find((run) => run.status === 'in_progress');
+
+    if (activeRun) {
+      console.log(`⏳ Ожидание завершения процесса: ${activeRun.id}`);
+
+      const maxWaitTime = 60 * 1000; // 60 секунд
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxWaitTime) {
+        const updatedRun = await openai.beta.threads.runs.retrieve(
+          activeRun.id,
+        );
+
+        if (updatedRun.status !== 'in_progress') {
+          console.log(`✅ Run завершен: ${updatedRun.id}`);
+          return;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // Проверяем каждые 3 сек
+      }
+
+      console.log(`⚠️ Run завис. Создаю новый поток...`);
+      threadId = await createThread();
+      await setFileData('src/main/brain/settings.json', {
+        assistantId,
+        threadId,
+      });
+    }
+  } catch (error) {
+    console.error(
+      `⚠️ Ошибка при проверке активного процесса: ${error.message}`,
+    );
+  }
 }
 
 async function createAssistant() {
   const assistant = await openai.beta.assistants.create({
-    name: 'Liza',
+    name: 'Milena',
     instructions,
     model: 'gpt-4o-mini',
   });
@@ -52,59 +105,17 @@ async function createThread() {
   return thread.id;
 }
 
-async function addMessageToThread(threadId, role, content) {
-  if (content === '') return;
-  await openai.beta.threads.messages.create(threadId, {
-    role: role,
-    content: content,
-  });
-}
+// Добавляем сообщение, но сначала проверяем активные `run`
+async function addMessageToThread(role, content) {
+  if (!content) return;
+  await ensureRunFinished(threadId);
 
-async function streamAssistantResponse(
-  sendMessageFunction,
-  threadId,
-  assistantId,
-) {
-  return new Promise((resolve, reject) => {
-    let buffer = '';
-    let fullAnswer = '';
-    const sentMessages = new Set();
-
-    const run = openai.beta.threads.runs
-      .stream(threadId, {
-        assistant_id: assistantId,
-      })
-      .on('textDelta', (textDelta) => {
-        buffer += textDelta.value;
-        let sentences = splitBuffer(buffer);
-
-        if (sentences.length > 1) {
-          for (let i = 0; i < sentences.length - 1; i++) {
-            const sentenceTrimed = sentences[i].trim();
-
-            if (sentenceTrimed && !sentMessages.has(sentenceTrimed)) {
-              sendMessageFunction(sentenceTrimed)
-                .then(() => {
-                  fullAnswer += sentenceTrimed + ' ';
-                  sentMessages.add(sentenceTrimed);
-                })
-                .catch((error) => {
-                  console.error(`Error sending message: ${error.message}`);
-                });
-            }
-          }
-
-          buffer = sentences[sentences.length - 1];
-        }
-      })
-      .on('end', () => {
-        resolve(fullAnswer.trim());
-      })
-      .on('error', (err) => {
-        console.error(`Stream error: ${err.message}`);
-        reject(err);
-      });
-  });
+  try {
+    await openai.beta.threads.messages.create(threadId, { role, content });
+  } catch (error) {
+    threadId = await createThread();
+    await openai.beta.threads.messages.create(threadId, { role, content });
+  }
 }
 
 export async function generate(
@@ -114,75 +125,100 @@ export async function generate(
   activityDescription,
   emotionsDescription,
 ) {
-  const currentDayOfweek = new Date().getDay();
-  const warsawTime = new Date().toLocaleTimeString('ru-RU', {
-    timeZone: 'Europe/Warsaw',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const lastUserMessage =
+    dialog
+      .slice()
+      .reverse()
+      .find((msg) => msg.role !== 'assistant')?.content || '';
 
-  const fullDateRus =
-    new Date().toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }) +
-    ', ' +
-    warsawTime +
-    ', ' +
-    daysOfWeek[currentDayOfweek];
+  console.log(dialog);
 
-  const prompt = `
-  Ответь как взрослая девушка, находящаяся в Варшаве. Твои эмоции: ${emotionsDescription}. ${activityDescription}.
-  Ответь на сообщение собеседника: "${dialog[dialog.length - 1].content}". Ваши отношения с собеседником: ${description}. Время у тебя сейчас: ${fullDateRus}.
-  Правила: Не отвечай шаблонно. Постарайся включить эмоции и креатив, но держись естественно. Избегай типичных фраз вроде "Конечно!" и прочих, которые бы выдавали тебя как ИИ. Ответ должен быть кратким и похожим на то, что мог бы сказать настоящий человек, помни, ты — не ИИ, а человек.`;
-  await addMessageToThread(threadId, dialog[dialog.length - 1].role, prompt);
+  console.log(`
+🌡️ Твои эмоции сейчас: ${emotionsDescription}.\n
+🎭 Что ты сейчас делаешь: ${activityDescription}.\n
+👥 Отношение к собеседнику: ${description}.`);
 
-  for (let i = 1; i < dialog.length; i++) {
-    await addMessageToThread(threadId, dialog[i].role, dialog[i].content);
-  }
+  const prompt = `Ты – живой человек, а не ИИ. Ты естественна, общительна и отвечаешь непринужденно, без излишней креативности. Ты не стараешься быть слишком оригинальной – главное, быть естественной, как человек.
 
-  // Ждем немного, чтобы все сообщения были обработаны
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+📌 Как ты отвечаешь:
+- **Обычные вопросы** – даешь короткий, но живой ответ: добавляешь деталь, эмоцию или настроение.
+- **Если разговор скучный** – оживляешь его встречным вопросом или лёгким юмором.
+- **Если вопрос глубокий** – отвечаешь осмысленно, но без перегруженных образов.
+- **Не увлекайся художественными описаниями** – отвечай, как если бы ты писала сообщение другу.
 
-  // Затем получаем ответ ассистента
-  const fullAnswer = await streamAssistantResponse(
-    sendMessageFunction,
-    threadId,
-    assistantId,
-  );
+🌡️ Твои эмоции сейчас: ${emotionsDescription}.
+🎭 Что ты сейчас делаешь: ${activityDescription}.
+👥 Отношение к собеседнику: ${description}.
 
-  return fullAnswer;
+📩 Отвечай только на последнее сообщение собеседника: "${lastUserMessage}".  
+Будь естественной, без лишнего пафоса, но и без сухости.
+`;
+
+  await addMessageToThread('user', prompt);
+  return await getFullResponse(sendMessageFunction, threadId, assistantId);
 }
 
-function splitBuffer(buffer) {
-  const parts = buffer.split(/(?<=\.{3}|[.!?])\s*/);
+async function getFullResponse(sendMessageFunction, threadId, assistantId) {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    let fullAnswer = '';
+    let lastSent = '';
+    let pendingEmoji = '';
 
-  let result = [];
-  let currentSentence = '';
+    openai.beta.threads.runs
+      .stream(threadId, { assistant_id: assistantId })
+      .on('textDelta', (textDelta) => {
+        buffer += textDelta.value;
+        fullAnswer += textDelta.value;
 
-  parts.forEach((part) => {
-    const emojiMatch = part.match(
-      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
-    );
+        const sentences = buffer.match(/[^.!?…]+[.!?…\s]*|.+$/g) || [];
 
-    if (emojiMatch && result.length > 0) {
-      result[result.length - 1] += ' ' + emojiMatch[0];
-      part = part.slice(emojiMatch[0].length);
-    }
+        while (sentences.length > 1) {
+          let sentence = sentences.shift().trim();
+          if (!sentence) continue;
 
-    if (part === '.' && result.length > 0) {
-      result[result.length - 1] += part;
-    } else if (part.trim() !== '') {
-      if (/[.!?…]$/.test(part)) {
-        currentSentence += part;
-        result.push(currentSentence.trim());
-        currentSentence = '';
-      } else {
-        currentSentence += part;
-      }
-    }
+          const emojiMatch = sentence.match(
+            /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
+          );
+
+          if (emojiMatch) {
+            pendingEmoji = emojiMatch[0];
+            sentence = sentence.slice(emojiMatch[0].length).trim();
+          }
+
+          sentence = sentence.replace(/\.$/, '');
+
+          if (
+            /[!?…]$/.test(sentence) ||
+            (sentence.length > 1 && /[.!?…]$/.test(sentence))
+          ) {
+            if (pendingEmoji) {
+              sentence += ' ' + pendingEmoji;
+              pendingEmoji = '';
+            }
+
+            if (sentence !== lastSent) {
+              sendMessageFunction(sentence.trim());
+              lastSent = sentence;
+            }
+          }
+        }
+
+        buffer = sentences[0] || '';
+      })
+      .on('end', () => {
+        if (buffer.trim().length > 0) {
+          sendMessageFunction(buffer.trim());
+        }
+
+        console.log(
+          `[getFullResponse] Полный ответ GPT:\n${fullAnswer.trim()}`,
+        );
+        resolve(fullAnswer.trim());
+      })
+      .on('error', (err) => {
+        console.error('Ошибка в стриме OpenAI:', err);
+        reject(err);
+      });
   });
-
-  return result;
 }
