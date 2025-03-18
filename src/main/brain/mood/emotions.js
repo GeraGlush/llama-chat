@@ -15,7 +15,6 @@ export const emotions = [
   'tenderness',
   'devotion',
   'angry',
-  'talkativeness',
   'resentment',
   'audacious',
   'sadness',
@@ -25,27 +24,26 @@ export const emotions = [
 ];
 
 export const emotionLexicon = {
-  happy: ['joy', 'excitement', 'amusement'], // радость, восторг, развлечение
-  playfulness: ['amusement'], // веселье (игривость)
-  neutral: ['neutral'], // нейтральное состояние
-  guilt: ['remorse'], // вина, раскаяние
-  thrilled: ['excitement'], // восторг
-  pleased: ['approval', 'relief'], // одобрение, облегчение
-  confused: ['confusion', 'realization'], // непонимание, осознание
-  disappointed: ['disappointment'], // разочарование
-  friendly: ['caring', 'admiration'], // забота, восхищение
-  love: ['love', 'desire'], // любовь, желание
-  compassion: ['caring', 'gratitude'], // забота, благодарность
+  happy: ['joy', 'excitement', 'optimism'],
+  playfulness: ['amusement'],
+  neutral: ['neutral'],
+  guilt: ['remorse'],
+  thrilled: ['excitement'],
+  pleased: ['approval', 'relief'],
+  confused: ['confusion', 'realization'],
+  disappointed: ['disappointment'],
+  friendly: ['caring', 'admiration'],
+  love: ['love', 'desire'],
+  compassion: ['caring', 'gratitude'],
   envy: ['envy'],
-  curiosity: ['curiosity'], // любопытство
-  tenderness: ['caring'], // нежность (как забота)
-  devotion: ['admiration'], // преданность (восхищение)
-  angry: ['anger', 'annoyance', 'disapproval'], // злость, раздражение, неодобрение
-  talkativeness: ['optimism'], // болтливость (оптимизм ближе всего)
-  resentment: ['disgust'], // негодование (отвращение)
-  audacious: ['pride'], // дерзкий (гордость)
-  sadness: ['sadness', 'grief', 'disappointment'], // грусть, горе, разочарование
-  anxious: ['nervousness', 'fear'], // тревожность, страх
-  calm: ['relief'], // спокойствие (облегчение)
-  depressed: ['sadness', 'grief', 'disappointment'], // депрессия (то же, что и грусть)
+  curiosity: ['curiosity'],
+  tenderness: ['caring'],
+  devotion: ['admiration'],
+  angry: ['anger', 'annoyance', 'disapproval'],
+  resentment: ['disgust'],
+  audacious: ['amusement'],
+  sadness: ['sadness', 'grief', 'disappointment'],
+  anxious: ['nervousness', 'fear'],
+  calm: ['relief'],
+  depressed: ['sadness', 'grief', 'disappointment'],
 };

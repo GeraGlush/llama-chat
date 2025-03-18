@@ -118,15 +118,9 @@ async function addMessageToThread(role, content) {
   }
 }
 
-export async function generate(
-  sendMessageFunction,
-  dialog,
-  description,
-  activityDescription,
-  emotionsDescription,
-) {
+export async function generate(sendMessageFunction, person) {
   const lastUserMessage =
-    dialog
+    person.dialog
       .slice()
       .reverse()
       .find((msg) => msg.role !== 'assistant')?.content || '';
@@ -142,14 +136,17 @@ export async function generate(
 - Если не знаешь, что сказать – просто дай честный и короткий ответ, без лишнего "водяного" текста.
 
 💬 **Контекст твоего общения:**
-- Твоё отношение к собеседнику: ${description}.
-- Твои эмоции сейчас: ${emotionsDescription}.
-- Что ты сейчас делаешь: ${activityDescription}.
+- Твоё отношение к собеседнику: ${person.relationship.description}.
+- Твои эмоции сейчас: ${person.mood.description}.
+- Что ты сейчас делаешь: ${person.activity.description}.
+- Твоя оценка диалога: ${person.conversation.description}.
+- День недели: ${daysOfWeek[new Date().getDay()]}.
 
 📩 **Последнее сообщение собеседника:**  
 "${lastUserMessage}"  
 
 Отвечай как обычный человек, без излишнего старания. Не выдавай себя за ChatGPT – просто общайся.`;
+  console.log(prompt);
 
   await addMessageToThread('user', prompt);
   return await getFullResponse(sendMessageFunction, threadId, assistantId);

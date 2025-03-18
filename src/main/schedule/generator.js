@@ -7,22 +7,22 @@ export async function generateRandomSchedule() {
   const activities = await getFileData('/src/main/schedule/activities.json');
 
   schedule.push({
-    time: `00-${getRandomTime(7, 8)}`,
+    duration: `00-${getRandomTime(7, 8)}`,
     hurry: 4,
-    activity: 'сон',
+    name: 'сон',
   });
 
   if (isWorkingDay(weekDay)) {
     schedule.push({
-      time: `${getRandomTime(9, 10)}-${getRandomTime(14, 16)}`,
+      duration: `${getRandomTime(9, 10)}-${getRandomTime(14, 16)}`,
       hurry: Math.floor(Math.random() * 3) + 2,
-      activity: 'работаешь',
+      name: 'работаешь',
     });
   }
 
   function addActivity(activity) {
     const startTime = isWorkingDay(weekDay)
-      ? schedule[schedule.length - 1].time.split('-')[1]
+      ? schedule[schedule.length - 1].duration.split('-')[1]
       : getRandomTime(10, 14);
     const endTime = getNextTime(startTime, activity.duration);
     const activityTime = `${startTime}-${endTime}`;
@@ -30,23 +30,23 @@ export async function generateRandomSchedule() {
       const travelTimeBefore = `${getPreviousTime(startTime, 0.5)}-${startTime}`;
       const travelTimeAfter = `${endTime}-${getNextTime(endTime, 0.75)}`;
       schedule.push({
-        time: travelTimeBefore,
-        activity: 'собираюсь, чтобы ' + activity.name,
+        duration: travelTimeBefore,
+        name: 'собираюсь, чтобы ' + activity.name,
       });
       schedule.push({
-        time: activityTime,
-        activity: activity.name,
+        duration: activityTime,
+        name: activity.name,
         hurry: getRandomElFromAray(activity.hurry),
       });
       schedule.push({
-        time: travelTimeAfter,
-        activity: 'добираюсь домой с ' + activity.name,
+        duration: travelTimeAfter,
+        name: 'добираюсь домой с ' + activity.name,
         hurry: getRandomElFromAray(activity.hurry),
       });
     } else {
       schedule.push({
-        time: activityTime,
-        activity: activity.name,
+        duration: activityTime,
+        name: activity.name,
         hurry: getRandomElFromAray(activity.hurry),
       });
     }
@@ -61,7 +61,7 @@ export async function generateRandomSchedule() {
         const activityTime = `${startTime}-${endTime}`;
         if (
           Math.random() * 100 < activity.probability &&
-          !schedule.some((item) => timeOverlap(item.time, activityTime))
+          !schedule.some((item) => timeOverlap(item.duration, activityTime))
         ) {
           addActivity(activity);
         }
@@ -69,12 +69,12 @@ export async function generateRandomSchedule() {
   }
 
   schedule.push({
-    time: `${getRandomTime(21, 22)}-00`,
+    duration: `${getRandomTime(21, 22)}-00`,
     hurry: 4,
-    activity: 'сон',
+    name: 'сон',
   });
 
-  return schedule.sort((a, b) => a.time.localeCompare(b.time));
+  return schedule.sort((a, b) => a.duration.localeCompare(b.duration));
 }
 
 function getRandomTime(startHour, endHour) {

@@ -15,7 +15,7 @@ export async function generateRandomMood(userId) {
   const random = () => {
     return Math.floor(Math.random() * 3) + 1;
   };
-  person.mood = {
+  person.mood.emotions = {
     [getRandomMood()]: random(),
   };
   await setFileData(`peoples/${userId}.json`, person);

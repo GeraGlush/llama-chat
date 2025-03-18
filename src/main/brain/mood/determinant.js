@@ -21,7 +21,10 @@ export async function getNewMood(text) {
 
     return mapToCustomEmotions(predictions);
   } catch (error) {
+    console.log(error.message);
+
     console.log('Ошибка распознования эмоций! Пробуем еще раз...');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     return getNewMood(text);
   }
 }

@@ -1,6 +1,6 @@
 import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
-import { relationshipPlus } from '../brain/relationship.js';
+import { relationshipPlus } from '../brain/relationship/relationship.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
 import {
   getUpdatedMood,
@@ -9,22 +9,24 @@ import {
 } from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
 import { countRewar, getNewMood } from '../brain/mood/determinant.js';
+import { rateConversation } from '../brain/conversation/conversationRater.js';
 
 const pendingGenerations = new Map();
 const interests = new Map();
 
 export async function answerToSinglePerson(client, person, message) {
-  // #region Проверка на необходимость ответа
   if (!shouldAnswer(person.userId, message)) return;
 
   const lastMessage = await client.getMessages(person.username, { limit: 1 });
 
   if (lastMessage[0]?.out) {
-    await setFileData(`peoples/${person.userId}.json`, person);
+    await setFileData(
+      `peoples/${person.userId}.json`,
+      removeCircularReferences(person),
+    );
     return;
   }
 
-  // Проверяем, есть ли активная генерация
   pushMessage(person, message, 'user', person.username);
 
   if (pendingGenerations.has(person.userId)) {
@@ -35,38 +37,47 @@ export async function answerToSinglePerson(client, person, message) {
     return;
   }
 
-  // Создаем запись о запущенной генерации
   pendingGenerations.set(person.userId, {
     messages: [message],
     isGenerating: true,
   });
-  // #endregion
-
-  // #region Получение данных
 
   console.log('Получение данных для ответа...');
 
   const activity = await getActivity(person.userId);
-  person.activityDescription = activity.activityDescription;
+  person.activity = activity;
 
-  await waitForActivityDone(activity.hurry);
+  if (activity.hurry > 0) await waitForActivityDone(activity.hurry);
 
-  const newMoodData = await getNewMood(message);
-  const relPlus = countRewar(newMoodData); // по полученным эмоциям
-  const updatedMood = await getUpdatedMood(person.mood, newMoodData);
-  person.mood = updatedMood;
-  const moodDescription = await getMoodDescription(updatedMood);
+  const [newMoodData, conversationRate] = await Promise.all([
+    getNewMood(message),
+    rateConversation(person.dialog),
+  ]);
 
-  // Обновляем уровень отношений
-  relationshipPlus(relPlus, person.relationship).then((res) => {
+  if (conversationRate.interestScore < 0.4) {
+    console.log('Диалог не интересный. Можно не отвечать');
+    pendingGenerations.delete(person.userId);
+    return;
+  }
+
+  const relPlusPromise = countRewar(newMoodData);
+  const updatedMoodPromise = getUpdatedMood(person.mood, newMoodData);
+
+  const [updatedMood, moodDescription] = await Promise.all([
+    updatedMoodPromise,
+    updatedMoodPromise.then(getMoodDescription),
+  ]);
+
+  person.mood.emotions = updatedMood;
+  person.mood.description = moodDescription;
+  person.conversation = conversationRate;
+
+  relationshipPlus(await relPlusPromise, person.relationship).then((res) => {
     person.relationship = res ?? person.relationship;
   });
 
-  // Устанавливаем реакцию на сообщение
   setReaction(client, newMoodData, lastMessage[0], person.userId);
-  // #endregion
 
-  // Функция отправки сообщения
   const sendMessageFunction = async (sentence) => {
     const emoji = sentence.match(
       /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
@@ -81,24 +92,36 @@ export async function answerToSinglePerson(client, person, message) {
       await client.sendMessage(person.username, { message });
   };
 
-  // Генерируем полный ответ
   console.log('Генерация ответа...');
 
-  const fullAnswer = await generate(
-    sendMessageFunction,
-    person.dialog,
-    person.relationship.description,
-    person.activityDescription,
-    moodDescription,
-  );
+  const fullAnswer = await generate(sendMessageFunction, person);
 
-  // Добавляем ответ в диалог
   pushMessage(person, fullAnswer);
   pendingGenerations.delete(person.userId);
 
-  // Сохраняем данные
-  await setFileData(`peoples/${person.userId}.json`, person);
-  console.log('Все сохранено');
+  try {
+    await setFileData(
+      `peoples/${person.userId}.json`,
+      removeCircularReferences(person),
+    );
+    console.log('Все сохранено');
+  } catch (error) {
+    console.log('Ошибка сохранения данных');
+  }
+}
+
+// 🔹 Функция удаления циклических ссылок
+function removeCircularReferences(obj) {
+  const seen = new WeakSet();
+  return JSON.parse(
+    JSON.stringify(obj, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return undefined; // Удаляем циклическую ссылку
+        seen.add(value);
+      }
+      return value;
+    }),
+  );
 }
 
 const pushMessage = (person, content, role = 'assistant', name = 'Милена') => {

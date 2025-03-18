@@ -1,7 +1,9 @@
-import { getFileData } from '../../helpers.js';
+import { getFileData } from '../../../helpers.js';
 
 export async function relationshipPlus(relPlus, relationshipWithPeople) {
-  const relationships = await getFileData('storage/relationship.json');
+  const relationships = await getFileData(
+    '/src/main/brain/relationship/descriptions.json',
+  );
 
   if (!relationshipWithPeople) {
     return {
@@ -26,12 +28,15 @@ export async function relationshipPlus(relPlus, relationshipWithPeople) {
     step,
     points,
     description: relationships.steps[step].description,
-    message: relationships.steps[step]?.message || null,
   };
 }
 
 export async function getRelationship(userId) {
-  const relationships = await getFileData('storage/relationship.json');
+  const relationships = await getFileData(
+    '/src/main/brain/relationship/descriptions.json',
+  );
+  console.log(relationships);
+
   const userRelationship = await getFileData(`peoples/${userId}.json`);
   return relationships.steps[userRelationship.step];
 }

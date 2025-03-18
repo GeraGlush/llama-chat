@@ -37,7 +37,7 @@ async function getCurrentActivity(activities) {
   const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
   const currentActivity = activities.find((entry) => {
-    const [startTime, endTime] = entry.time.split('-').map((t) => t.trim());
+    const [startTime, endTime] = entry.duration.split('-').map((t) => t.trim());
     if (endTime > startTime) {
       return currentTime >= startTime && currentTime < endTime;
     } else {
@@ -52,8 +52,8 @@ export async function getActivity(userId) {
   const activities = await ensureSchedule(userId);
   const activity = await getCurrentActivity(activities);
 
-  const activityDescription = getActivityDescription(activity);
-  return { ...activity, activityDescription };
+  const description = getActivityDescription(activity);
+  return { ...activity, description };
 }
 
 let waitTime = 0;
@@ -84,7 +84,7 @@ export async function waitForActivityDone(hurry) {
     const [minTime, maxTime] = waitTimeForActivity[hurry];
     waitTime = Math.random() * (maxTime - minTime) + minTime; // Дробное время
 
-    console.log(`Начинаем ожидание: ${waitTime.toFixed(1)} мин`);
+    console.log(`Я пока занята! До ответа: ${waitTime.toFixed(1)} мин`);
 
     while (waitTime > 0) {
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -117,5 +117,5 @@ function getActivityDescription(activity) {
     4: 'Не могу ответить',
   };
   const hurry = hurryDescription[activity.hurry];
-  return `Сейчас ты ${activity.activity}. Уровень твоей занятости: ${hurry}`;
+  return `Сейчас ты ${activity.name || 'ничем особо не занята'}. Уровень твоей занятости: ${hurry}`;
 }
