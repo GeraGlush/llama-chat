@@ -1,32 +1,35 @@
-import { brain } from '../index.js';
 import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { relationshipPlus } from '../brain/relationship.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
-import { setMood, getMood, getMoodsDescription } from '../brain/mood/mood.js';
+import {
+  getUpdatedMood,
+  getMood,
+  getMoodDescription,
+} from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
+import { countRewar, getNewMood } from '../brain/mood/determinant.js';
 
-const maxDialogLength = 15;
-const shortDialogLength = 3;
-const interestToPass = 4;
-
-const pendingGenerations = new Map(); // Хранит ожидающие генерации
+const pendingGenerations = new Map();
+const interests = new Map();
 
 export async function answerToSinglePerson(client, person, message) {
-  if (!shouldAnswer(message)) return;
+  // #region Проверка на необходимость ответа
+  if (!shouldAnswer(person.userId, message)) return;
 
-  person.talk.interest = Math.min(person.talk.interest + 1, 10);
   const lastMessage = await client.getMessages(person.username, { limit: 1 });
 
-  if (lastMessage[0]?.out || person.talk.interest < interestToPass) {
+  if (lastMessage[0]?.out) {
     await setFileData(`peoples/${person.userId}.json`, person);
     return;
   }
 
   // Проверяем, есть ли активная генерация
+  pushMessage(person, message, 'user', person.username);
+
   if (pendingGenerations.has(person.userId)) {
     console.log(
-      `[answerToSinglePerson] Новая функция прекращена: сообщение добавлено к ожиданию для ${person.username}`,
+      `[answerToSinglePerson] Сообщение добавлено к ожиданию для ${person.username}`,
     );
     pendingGenerations.get(person.userId).messages.push(message);
     return;
@@ -37,119 +40,90 @@ export async function answerToSinglePerson(client, person, message) {
     messages: [message],
     isGenerating: true,
   });
+  // #endregion
 
-  person.dialog.push({ role: 'user', name: person.name, content: message });
-  if (person.dialog.length > maxDialogLength) person.dialog.shift();
+  // #region Получение данных
 
-  console.log('activityDescription');
+  console.log('Получение данных для ответа...');
+
   const activity = await getActivity(person.userId);
-  console.log(activity);
+  person.activityDescription = activity.activityDescription;
 
-  const activityDescription = activity.activityDescription;
-  person.activityDescription = activityDescription;
+  await waitForActivityDone(activity.hurry);
 
-  await waitForActivityDone(activity.hurry); // Ждем в соответствии с занятостью
+  const newMoodData = await getNewMood(message);
+  const relPlus = countRewar(newMoodData); // по полученным эмоциям
+  const updatedMood = await getUpdatedMood(person.mood, newMoodData);
+  person.mood = updatedMood;
+  const moodDescription = await getMoodDescription(updatedMood);
 
-  let mindset = person.lastMindset;
-  let moodDescription = person.lastMoodDescription;
+  // Обновляем уровень отношений
+  relationshipPlus(relPlus, person.relationship).then((res) => {
+    person.relationship = res ?? person.relationship;
+  });
 
-  if (!/Ты не занята|Немного занята/.test(activityDescription)) {
-    console.log('Используем прошлые данные');
+  // Устанавливаем реакцию на сообщение
+  setReaction(client, newMoodData, lastMessage[0], person.userId);
+  // #endregion
 
-    const moodPromise = brain
-      .request(person.dialog.slice(-shortDialogLength))
-      .then((res) => {
-        person.lastMindset = res;
-        return res?.mood || null;
-      })
-      .catch(console.error);
-
-    Promise.all([
-      getMoodsDescription(person.userId).then((res) => {
-        person.lastMoodDescription = res;
-      }),
-      relationshipPlus(person.talk.interest, person.relationship).then(
-        (res) => {
-          person.relationship = res ?? person.relationship;
-        },
-      ),
-    ]).catch(console.error);
-
-    moodPromise
-      .then((newMood) => {
-        if (newMood) {
-          setReaction(client, newMood, lastMessage[0], person.userId);
-        }
-      })
-      .catch(console.error);
-  } else {
-    console.log('Обновляем данные перед ответом');
-    [mindset, moodDescription] = await Promise.all([
-      brain.request(person.dialog.slice(-shortDialogLength)),
-      getMoodsDescription(person.userId),
-    ]);
-
-    relationshipPlus(person.talk.interest, person.relationship)
-      .then((res) => {
-        person.relationship = res ?? person.relationship;
-      })
-      .catch(console.error);
-
-    person.lastMindset = mindset;
-    person.lastMoodDescription = moodDescription;
-
-    setReaction(client, mindset.mood, lastMessage[0], person.userId);
-  }
-
+  // Функция отправки сообщения
   const sendMessageFunction = async (sentence) => {
+    const emoji = sentence.match(
+      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
+    );
+    if (emoji) {
+      await client.sendMessage(person.username, { message: emoji[0] });
+      sentence = sentence.slice(emoji[0].length).trim();
+    }
+
     const message = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
-    await client.sendMessage(person.username, { message });
+    if (message.length > 0)
+      await client.sendMessage(person.username, { message });
   };
 
-  // Ждем и объединяем все накопленные сообщения
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // Генерируем полный ответ
+  console.log('Генерация ответа...');
 
-  const combinedMessage = pendingGenerations
-    .get(person.userId)
-    .messages.join(' ');
-  pendingGenerations.delete(person.userId); // Убираем из ожидания
-
-  // Добавляем объединенное сообщение в диалог
-  person.dialog.push({
-    role: 'user',
-    name: person.name,
-    content: combinedMessage,
-  });
-  if (person.dialog.length > maxDialogLength) person.dialog.shift();
-
-  console.log(`[generate] Запускаем генерацию ответа для ${person.username}`);
-
-  const fullAnswerPromise = generate(
+  const fullAnswer = await generate(
     sendMessageFunction,
     person.dialog,
     person.relationship.description,
-    activityDescription,
+    person.activityDescription,
     moodDescription,
   );
 
-  const fullAnswer = await fullAnswerPromise;
-  person.dialog.push({ role: 'assistant', content: fullAnswer });
-
-  // Очистка статуса генерации
+  // Добавляем ответ в диалог
+  pushMessage(person, fullAnswer);
   pendingGenerations.delete(person.userId);
 
-  // Асинхронно сохраняем настроение и данные без ожидания
-  Promise.all([
-    mindset?.mood ? setMood(mindset.mood, person.userId) : Promise.resolve(),
-    setFileData(`peoples/${person.userId}.json`, person),
-  ]).catch(console.error);
+  // Сохраняем данные
+  await setFileData(`peoples/${person.userId}.json`, person);
+  console.log('Все сохранено');
 }
 
-const shouldAnswer = (message) => {
-  if (message.includes('?') || message.includes('!') || message.includes('...'))
-    return true;
-  if (!message.includes(' ')) return false;
+const pushMessage = (person, content, role = 'assistant', name = 'Милена') => {
+  const maxDialogLength = 15;
+  person.dialog.push({ role, name, content });
+  if (person.dialog.length > maxDialogLength) person.dialog.shift();
+};
 
+const shouldAnswer = (userId, message) => {
+  let interest = interests.get(userId) || 10;
+  interest++;
+
+  if (message.includes('...')) interest += 3;
+  if (message.includes('?')) {
+    interest += 5;
+    return true;
+  }
+
+  if (message.includes('!')) interest += 5;
+  if (!message.includes(' ')) interest -= 4;
+
+  if (interest > 10) interest = 10;
+  if (interest < 0) interest = 0;
+  if (interest < 3) return false;
+  interests.set(userId, interest);
   return true;
 };
 

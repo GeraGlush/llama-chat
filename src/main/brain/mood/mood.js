@@ -21,86 +21,57 @@ export async function generateRandomMood(userId) {
   await setFileData(`peoples/${userId}.json`, person);
 }
 
-export async function setMood(newMoods, userId) {
-  const emotionsPower = {
-    happy: 0.1,
-    playfulness: 0.3,
-    neutral: 0.1,
-    guilt: 0.5,
-    thrilled: 1,
-    pleased: 1,
-    confused: 1,
-    disappointed: 1,
-    friendly: 1,
-    love: 1.5,
-    jealousy: 2.5,
-    compassion: 1,
-    curiosity: 1,
-    tenderness: 2.5,
-    devotion: 1.5,
-    talkativeness: 0.5,
-    angry: 2,
-    resentment: 1,
-    audacious: 3,
-    sadness: 2,
-    anxious: 1,
-    calm: 0.5,
-    depressed: 2,
-  };
-
+export async function getUpdatedMood(mood, newMoods) {
   const conflicts = {
-    happy: ['sadness', 'depressed', 'guilt'],
+    happy: ['sadness', 'depressed', 'guilt', 'envy'],
     sadness: ['happy', 'thrilled', 'pleased'],
     angry: ['calm', 'pleased', 'friendly'],
     calm: ['angry', 'resentment'],
     depressed: ['happy', 'pleased'],
     anxious: ['calm', 'happy'],
+    fear: ['calm', 'pleased'],
+    guilt: ['happy', 'pleased'],
   };
-  const person = await getFileData(`peoples/${userId}.json`);
 
-  if (!person.mood) {
-    person.mood = {};
-  }
+  newMoods.forEach(({ emotion, score }) => {
+    console.log({ emotion, score });
 
-  newMoods.forEach((newMood) => {
-    if (emotions.includes(newMood)) {
-      if (person.mood[newMood]) {
-        person.mood[newMood] += emotionsPower[newMood];
+    if (emotions.includes(emotion)) {
+      if (mood[emotion]) {
+        mood[emotion] += score;
       } else {
-        person.mood[newMood] = emotionsPower[newMood];
+        mood[emotion] = score;
       }
     } else {
-      person.mood[newMood] = 0;
+      mood[emotion] = 0;
     }
   });
 
-  Object.keys(person.mood).forEach((mood) => {
+  Object.keys(mood).forEach((mood) => {
     if (conflicts[mood]) {
       conflicts[mood].forEach((conflictMood) => {
-        if (person.mood[conflictMood]) {
-          delete person.mood[conflictMood];
+        if (mood[conflictMood]) {
+          delete mood[conflictMood];
         }
       });
     }
   });
 
-  Object.keys(person.mood).forEach((mood) => {
-    if (!newMoods.includes(mood) && person.mood[mood] > 0) {
-      person.mood[mood] -= 0.2;
+  Object.keys(mood).forEach((mood) => {
+    if (!newMoods.includes(mood) && mood[mood] > 0) {
+      mood[mood] -= 0.1;
     }
   });
 
-  await setFileData(`peoples/${userId}.json`, person);
+  return mood;
 }
 
-export async function getMoodsDescription(userId) {
-  console.log('getMoodsDescription');
-
-  const mood = await getMood(userId);
-  const descriptions = await getFileData('storage/moodsDescription.json');
-  console.log('+');
-
+export async function getMoodDescription(mood) {
   const descriptionsMood = [];
+  const descriptions = await getFileData(
+    '/src/main/brain/mood/descriptions.json',
+  );
+
   Object.entries(mood).forEach(([moodName, moodValue]) => {
     if (descriptions[moodName]) {
       if (moodValue > 0.5 && moodValue <= 1) {
@@ -110,8 +81,13 @@ export async function getMoodsDescription(userId) {
       } else if (moodValue >= 2) {
         descriptionsMood.push(descriptions[moodName].high);
       }
+    } else {
+      console.log(`⚠️ Описание для ${moodName} не найдено`);
     }
   });
 
-  return descriptionsMood.join('\n');
+  return descriptionsMood
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 3)
+    .join('\n');
 }

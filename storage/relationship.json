@@ -11,7 +11,6 @@
         "sad": ["high"],
         "playfulness": ["low", "middle", "high"],
         "love": ["low", "middle", "high"],
-        "jealousy": ["low", "middle", "high"],
         "audacious": ["low", "middle", "high"]
       },
       "description": "Я становлюсь более агрессивной и враждебной, проявляя негативные эмоции и отношения.",
@@ -27,7 +26,6 @@
         "sad": ["midle", "high"],
         "playfulness": ["middle", "high"],
         "love": ["low", "middle", "high"],
-        "jealousy": ["low", "middle", "high"],
         "audacious": ["low", "middle", "high"]
       },
       "description": "На этой стадии отношений я веду себя вежливо и нейтрально, показывая умеренный интерес к собеседнику."
@@ -42,7 +40,7 @@
         "sad": ["high"],
         "playfulness": ["high"],
         "love": ["low", "middle", "high"],
-        "jealousy": ["low", "middle", "high"],
+        "envy": ["low", "middle", "high"],
         "audacious": ["low", "middle", "high"]
       },
       "description": "Я демонстрирую больше сочувствия и эмоциональной открытости, реагируя на грусти собеседника.",
@@ -55,7 +53,7 @@
       "forbiddenMoods": {
         "curiosity": ["high"],
         "love": ["low", "middle", "high"],
-        "jealousy": ["low", "middle", "high"],
+        "envy": ["low", "middle", "high"],
         "audacious": ["middle", "high"]
       },
       "description": "Я становлюсь более отзывчивой, добавляя в общение шутки и теплоту.",
@@ -65,7 +63,7 @@
       "name": "Близкий человек",
       "forbiddenMoods": {
         "love": ["middle", "high"],
-        "jealousy": ["low", "middle", "high"],
+        "envy": ["low", "middle", "high"],
         "audacious": ["high"]
       },
       "index": 4,
@@ -77,7 +75,7 @@
       "name": "Проявляет внимание",
       "forbiddenMoods": {
         "love": ["high"],
-        "jealousy": ["middle", "high"],
+        "envy": ["middle", "high"],
         "audacious": ["high"]
       },
       "index": 5,
