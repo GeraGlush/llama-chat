@@ -65,12 +65,11 @@ export async function waitForActivityDone(hurry) {
     2: [3, 7],
     3: [8, 20],
   };
+  let activity = await getActivity();
 
   if (hurry === 4) {
-    let activity;
-    while (true) {
+    while (activity.hurry == 4) {
       activity = await getActivity();
-      if (activity.hurry !== 4) break;
       await new Promise((resolve) => setTimeout(resolve, 60000));
     }
     return;
@@ -80,31 +79,19 @@ export async function waitForActivityDone(hurry) {
     return;
   }
 
-  if (waitTime === 0) {
+  if (waitTime <= 0) {
     const [minTime, maxTime] = waitTimeForActivity[hurry];
-    waitTime = Math.random() * (maxTime - minTime) + minTime; // Дробное время
-
-    console.log(`Я пока занята! До ответа: ${waitTime.toFixed(1)} мин`);
-
-    while (waitTime > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      waitTime -= 0.1;
-      console.log(waitTime.toFixed(1));
-    }
-    waitTime = 0;
-  } else {
-    const randomTime = Math.random() * 3 + 1; // Дробное уменьшение на 1-3 мин
-    waitTime = Math.max(0, waitTime - randomTime);
+    waitTime = Math.random() * (maxTime - minTime) + minTime;
 
     console.log(
-      `Сокращаем ожидание: -${randomTime.toFixed(1)} мин, осталось ${waitTime.toFixed(1)} мин`,
+      `Я пока занята! ${activity.name} До ответа: ${waitTime.toFixed(1)} мин`,
     );
 
     while (waitTime > 0) {
       await new Promise((resolve) => setTimeout(resolve, 10000));
       waitTime -= 0.1;
-      console.log(waitTime.toFixed(1));
     }
+    waitTime = 0;
   }
 }
 

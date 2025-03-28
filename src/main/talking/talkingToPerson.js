@@ -54,7 +54,11 @@ async function handleNewMessage(update, client, person) {
               );
 
               const lastMessage = history.messages[0];
-              if (lastMessage && lastMessage.message) {
+              if (
+                lastMessage &&
+                lastMessage.message &&
+                !lastMessage.message.includes(' Распознаю голос')
+              ) {
                 recognizedText = lastMessage.message.replace('🗣 ', '');
                 break;
               }
@@ -103,7 +107,6 @@ async function fetchLatestMessages(client, person) {
 
   for (let i = 0; i < filtredMessages.length - 1; i++) {
     if (filtredMessages[i].out) break;
-    newMessages.push(filtredMessages[i]);
   }
   newMessages = newMessages.reverse();
 

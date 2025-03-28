@@ -2,14 +2,11 @@ import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { relationshipPlus } from '../brain/relationship/relationship.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
-import {
-  getUpdatedMood,
-  getMood,
-  getMoodDescription,
-} from '../brain/mood/mood.js';
+import { getUpdatedMood, getMoodDescription } from '../brain/mood/mood.js';
 import { Api } from 'telegram/tl/index.js';
-import { countRewar, getNewMood } from '../brain/mood/determinant.js';
+import { getNewMood } from '../brain/mood/determinant.js';
 import { rateConversation } from '../brain/conversation/conversationRater.js';
+import { getPromt } from '../brain/promt/promtCreator.js';
 
 const pendingGenerations = new Map();
 const interests = new Map();
@@ -49,9 +46,9 @@ export async function answerToSinglePerson(client, person, message) {
 
   if (activity.hurry > 0) await waitForActivityDone(activity.hurry);
 
-  const [newMoodData, conversationRate] = await Promise.all([
+  const [newEmotions, conversationRate] = await Promise.all([
     getNewMood(message),
-    rateConversation(person.dialog),
+    rateConversation(person),
   ]);
 
   if (conversationRate.interestScore < 0.4) {
@@ -60,23 +57,18 @@ export async function answerToSinglePerson(client, person, message) {
     return;
   }
 
-  const relPlusPromise = countRewar(newMoodData);
-  const updatedMoodPromise = getUpdatedMood(person.mood, newMoodData);
+  const updatedMood = getUpdatedMood(person.mood.emotions, newEmotions);
+  const moodDescription = await getMoodDescription(updatedMood);
 
-  const [updatedMood, moodDescription] = await Promise.all([
-    updatedMoodPromise,
-    updatedMoodPromise.then(getMoodDescription),
-  ]);
-
-  person.mood.emotions = updatedMood;
-  person.mood.description = moodDescription;
+  // const cleanedEmotions = updatedMood.emotions || updatedMood;
+  // if (cleanedEmotions.emotions) cleanedEmotions = cleanedEmotions.emotions;
+  person.mood = {
+    emotions: updatedMood,
+    description: moodDescription.description || moodDescription,
+  };
   person.conversation = conversationRate;
 
-  relationshipPlus(await relPlusPromise, person.relationship).then((res) => {
-    person.relationship = res ?? person.relationship;
-  });
-
-  setReaction(client, newMoodData, lastMessage[0], person.userId);
+  setReaction(client, newEmotions, lastMessage[0], person.userId);
 
   const sendMessageFunction = async (sentence) => {
     const emoji = sentence.match(
@@ -94,10 +86,23 @@ export async function answerToSinglePerson(client, person, message) {
 
   console.log('Генерация ответа...');
 
-  const fullAnswer = await generate(sendMessageFunction, person);
+  const messagesToAnswerOn = pendingGenerations
+    .get(person.userId)
+    .messages.join('. ');
+  const prompt = getPromt(
+    messagesToAnswerOn,
+    person.mood.description,
+    person.relationship.description,
+    person.conversation.description,
+    person.activity.description,
+  );
+  const fullAnswer = await generate(prompt, sendMessageFunction);
 
   pushMessage(person, fullAnswer);
   pendingGenerations.delete(person.userId);
+
+  const relationship = await relationshipPlus(newEmotions, person.relationship);
+  person.relationship = relationship;
 
   try {
     await setFileData(
@@ -110,7 +115,6 @@ export async function answerToSinglePerson(client, person, message) {
   }
 }
 
-// 🔹 Функция удаления циклических ссылок
 function removeCircularReferences(obj) {
   const seen = new WeakSet();
   return JSON.parse(
@@ -157,18 +161,14 @@ async function setReaction(client, mood, message, userId) {
     pleased: '❤️',
     friendly: '❤️',
     love: '❤️',
+    happy: '❤️',
     tenderness: '❤️',
     devotion: '❤️',
   };
 
   const reaction = [];
-  const currentMood = await getMood(userId);
-  mood.forEach((emotion) => {
-    if (
-      emotions[emotion] &&
-      currentMood[emotion] &&
-      currentMood[emotion] > 0.5
-    ) {
+  mood.forEach(({ emotion, score }) => {
+    if (emotions[emotion] && score > 0.3) {
       reaction.push(new Api.ReactionEmoji({ emoticon: '❤️' }));
     }
   });

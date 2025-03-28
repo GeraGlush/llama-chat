@@ -3,7 +3,7 @@ import { emotions } from './emotions.js';
 
 export async function getMood(userId) {
   const data = await getFileData(`peoples/${userId}.json`);
-  return data.mood;
+  return data.mood.emotions;
 }
 
 function getRandomMood() {
@@ -21,58 +21,87 @@ export async function generateRandomMood(userId) {
   await setFileData(`peoples/${userId}.json`, person);
 }
 
-export async function getUpdatedMood(mood, newMoods) {
-  const conflicts = {
-    happy: ['sadness', 'depressed', 'guilt', 'envy'],
-    sadness: ['happy', 'thrilled', 'pleased'],
-    angry: ['calm', 'pleased', 'friendly'],
-    calm: ['angry', 'resentment'],
-    depressed: ['happy', 'pleased'],
-    anxious: ['calm', 'happy'],
-    fear: ['calm', 'pleased'],
-    guilt: ['happy', 'pleased'],
-  };
+// Функция сопоставления эмоций с твоими категориями
+function mapToCustomEmotions(predictions) {
+  const threshold = 0.1; // Убираем эмоции с низкой уверенностью
+  let detectedEmotions = [];
 
-  newMoods.forEach(({ emotion, score }) => {
-    console.log({ emotion, score });
-
-    if (emotions.includes(emotion)) {
-      if (mood[emotion]) {
-        mood[emotion] += score;
-      } else {
-        mood[emotion] = score;
-      }
-    } else {
-      mood[emotion] = 0;
-    }
-  });
-
-  Object.keys(mood).forEach((mood) => {
-    if (conflicts[mood]) {
-      conflicts[mood].forEach((conflictMood) => {
-        if (mood[conflictMood]) {
-          delete mood[conflictMood];
+  predictions.forEach(({ label, score }) => {
+    if (score >= threshold) {
+      for (const [customEmotion, synonyms] of Object.entries(emotionLexicon)) {
+        if (
+          synonyms.includes(label) &&
+          !detectedEmotions.some((e) => e.emotion === customEmotion)
+        ) {
+          detectedEmotions.push({ emotion: customEmotion, score });
         }
-      });
+      }
     }
   });
 
-  Object.keys(mood).forEach((mood) => {
-    if (!newMoods.includes(mood) && mood[mood] > 0) {
-      mood[mood] -= 0.1;
-    }
-  });
-
-  return mood;
+  return detectedEmotions.length > 0
+    ? detectedEmotions
+    : [{ emotion: 'neutral', score: 1 }];
 }
 
-export async function getMoodDescription(mood) {
+export function getUpdatedMood(previousEmotions, newEmotions) {
+  const DECAY_RATE = 0.02; // Снижаем "устаревшие" эмоции на 0.02 за сообщение
+  let updatedEmotions = { ...previousEmotions }; // Делаем копию объекта
+
+  const newEmotionsMap = Object.fromEntries(
+    newEmotions.map((e) => [e.emotion, e.score]),
+  );
+
+  for (const emotion in previousEmotions) {
+    if (newEmotionsMap[emotion] !== undefined) {
+      updatedEmotions[emotion] = newEmotionsMap[emotion];
+    } else {
+      updatedEmotions[emotion] = Math.max(
+        previousEmotions[emotion] - DECAY_RATE,
+        0,
+      );
+
+      if (updatedEmotions[emotion] <= 0) {
+        delete updatedEmotions[emotion];
+      }
+    }
+  }
+
+  newEmotions.forEach(({ emotion, score }) => {
+    if (!(emotion in updatedEmotions)) {
+      updatedEmotions[emotion] = score;
+    }
+  });
+
+  // Проверяем нейтральность
+  const hasNeutral = 'neutral' in newEmotionsMap;
+  if (hasNeutral) {
+    updatedEmotions['neutral'] = newEmotionsMap['neutral'];
+  } else if ('neutral' in updatedEmotions) {
+    updatedEmotions['neutral'] = Math.max(
+      updatedEmotions['neutral'] - DECAY_RATE,
+      0,
+    );
+    if (updatedEmotions['neutral'] <= 0) {
+      delete updatedEmotions['neutral'];
+    }
+  }
+
+  return updatedEmotions;
+}
+
+export async function getMoodDescription(emotions) {
   const descriptionsMood = [];
   const descriptions = await getFileData(
     '/src/main/brain/mood/descriptions.json',
   );
 
-  Object.entries(mood).forEach(([moodName, moodValue]) => {
+  // ✅ Проверяем, является ли `emotions` объектом, и конвертируем его в массив
+  if (!Array.isArray(emotions)) {
+    emotions = Object.entries(emotions); // Преобразуем в массив [муд, значение]
+  }
+
+  emotions.forEach(([moodName, moodValue]) => {
     if (descriptions[moodName]) {
       if (moodValue > 0.5 && moodValue <= 1) {
         descriptionsMood.push(descriptions[moodName].low);
