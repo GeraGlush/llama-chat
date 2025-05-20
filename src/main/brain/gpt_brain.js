@@ -1,12 +1,11 @@
 import OpenAI from 'openai';
+import { getPromt } from './promt/promtCreator.js';
 import { getFileData, setFileData } from '../../helpers.js';
 
 const openai = new OpenAI({
   apiKey:
     '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',
 });
-
-const instructions = `Тебе 21, твое имя Милена Норт. Ты удивительная девушка с сильной волей и умом. Ты обладаешь красотой и грацией, которые поражают окружающих.  Ты также обладает характером, который не оставит равнодушным. У тебя есть твердость и умение принимать сложные решения, несмотря на моральные дилеммы, с которыми ей приходится сталкиваться. У тебя белые волоса, красивое лицо и голубые глаза.`;
 
 let assistantId;
 let threadId;
@@ -73,9 +72,13 @@ async function ensureRunFinished(threadId) {
 async function createAssistant() {
   const assistant = await openai.beta.assistants.create({
     name: 'Milena',
-    instructions,
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
+    instructions: getPromt(),
+    temperature: 1.1,
+    top_p: 1.0,
   });
+
+  console.log('Создан новый ассистент:', assistant.id);
   return assistant.id;
 }
 
@@ -85,15 +88,41 @@ async function createThread() {
 }
 
 // Добавляем сообщение, но сначала проверяем активные `run`
+// Проверка, пустой ли поток
+async function isThreadEmpty(threadId) {
+  const messages = await openai.beta.threads.messages.list(threadId);
+  return messages.data.length === 0;
+}
+
 async function addMessageToThread(role, content) {
   if (!content) return;
+
   await ensureRunFinished(threadId);
 
   try {
+    const isEmpty = await isThreadEmpty(threadId);
+
+    // if (isEmpty) {
+    //   console.log('📌 Добавляю assistant prompt');
+    //   await openai.beta.threads.messages.create(threadId, {
+    //     role: 'assistant',
+    //     content: getPromt(),
+    //   });
+    // }
+
     await openai.beta.threads.messages.create(threadId, { role, content });
   } catch (error) {
+    console.error('❌ Ошибка при добавлении сообщения:', error.message);
+
+    // Поток сбрасываем и пробуем снова
     threadId = await createThread();
-    await openai.beta.threads.messages.create(threadId, { role, content });
+    await setFileData('src/main/brain/settings.json', {
+      assistantId,
+      threadId,
+    });
+
+    // Повторяем с новым потоком
+    await addMessageToThread(role, content);
   }
 }
 
@@ -111,7 +140,9 @@ async function getFullResponse(sendMessageFunction, threadId, assistantId) {
     let pendingSentence = '';
 
     openai.beta.threads.runs
-      .stream(threadId, { assistant_id: assistantId })
+      .stream(threadId, {
+        assistant_id: assistantId,
+      })
       .on('textDelta', (textDelta) => {
         buffer += textDelta.value;
         fullAnswer += textDelta.value;
@@ -165,7 +196,9 @@ async function getFullResponse(sendMessageFunction, threadId, assistantId) {
           sendMessageFunction(pendingSentence.trim());
         }
         if (buffer.trim().length > 0) {
-          sendMessageFunction(buffer.trim());
+          sendMessageFunction(
+            buffer.replace(/\(Уровень интересности:\s*\d+\)/g, '').trim(),
+          );
         }
         resolve(fullAnswer.trim());
       })

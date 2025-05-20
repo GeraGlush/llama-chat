@@ -1,209 +1,281 @@
 [
-    {
-      "name": "кушаешь еду",
-      "probability": 100,
-      "duration": 0.5,
-      "hurry": [0, 1],
-      "isInCity": false
-    },
-    {
-      "name": "в церкви",
-      "probability": 90,
-      "duration": 2,
-      "hurry": [1, 2],
-      "isInCity": true,
-      "condition": "weekDay === 0"
-    },
-    {
-      "name": "готовлюсь к экзаменам",
-      "probability": 20,
-      "duration": 2,
-      "hurry": [2, 4],
-      "isInCity": false,
-      "condition": "isWorkingDay(weekDay)"
-    },
-    {
-      "name": "тренируешься в тренажёрном зале",
-      "probability": 50,
-      "duration": 1,
-      "hurry": [1],
-      "isInCity": true
-    },
-    {
-      "name": "встречаешься с подругами в кафе",
-      "probability": 45,
-      "duration": 1.5,
-      "hurry": [1],
-      "isInCity": true
-    },
-    {
-      "name": "шопинг",
-      "probability": 40,
-      "duration": 1.5,
-      "hurry": [1, 2],
-      "isInCity": true
-    },
-    {
-      "name": "учишься",
-      "probability": 70,
-      "duration": 3,
-      "hurry": [0, 1, 3],
-      "isInCity": true,
-      "condition": "!isWorkingDay(weekDay)"
-    },
-    {
-      "name": "отдыхаешь",
-      "probability": 90,
-      "duration": 2,
-      "hurry": [0],
-      "isInCity": false
-    },
-    {
-      "name": "гуляешь",
-      "probability": 80,
-      "duration": 1.5,
-      "hurry": [0],
-      "isInCity": true
-    },
-    {
-      "name": "читаешь книгу",
-      "probability": 70,
-      "duration": 1,
-      "hurry": [0, 4],
-      "isInCity": false
-    },
-    {
-      "name": "смотришь сериал",
-      "probability": 50,
-      "duration": 1.5,
-      "hurry": [0],
-      "isInCity": false
-    },
-    {
-      "name": "играешь в игры",
-      "probability": 40,
-      "duration": 1.5,
-      "hurry": [0],
-      "isInCity": false
-    },
-    {
-      "name": "общаешься с друзьями",
-      "probability": 30,
-      "duration": 2,
-      "hurry": [1, 2],
-      "isInCity": true
-    },
-    {
-      "name": "прогуливаешься",
-      "probability": 70,
-      "duration": 1.5,
-      "hurry": [0],
-      "isInCity": true
-    },
-    {
-      "name": "посещаешь мероприятие",
-      "probability": 20,
-      "duration": 2,
-      "hurry": [2, 3],
-      "isInCity": true
-    },
-    {
-      "name": "покупаешь продукты",
-      "probability": 50,
-      "duration": 1,
-      "hurry": [1],
-      "isInCity": false
-    },
-    {
-      "name": "делаешь уборку",
-      "probability": 40,
-      "duration": 1.5,
-      "hurry": [1],
-      "isInCity": false
-    },
-    {
-      "name": "готовишь",
-      "probability": 60,
-      "duration": 1.5,
-      "hurry": [1],
-      "isInCity": false
-    },
-    {
-      "name": "посещаешь родственников",
-      "probability": 30,
-      "duration": 2,
-      "hurry": [2],
-      "isInCity": true
-    },
-    {
-      "name": "проводишь время с друзьями",
-      "probability": 50,
-      "duration": 2,
-      "hurry": [2],
-      "isInCity": true
-    },
-    {
-      "name": "пьешь кофе в кофейне",
-      "probability": 40,
-      "duration": 1.5,
-      "hurry": [2],
-      "isInCity": true
-    },
-    {
-      "name": "встречаешься с друзьями",
-      "probability": 30,
-      "duration": 2,
-      "hurry": [2],
-      "isInCity": true
-    },
-    {
-      "name": "смотришь фильм",
-      "probability": 50,
-      "duration": 1.5,
-      "hurry": [0, 1],
-      "isInCity": false
-    },
-    {
-      "name": "путешествуешь в другой город",
-      "probability": 10,
-      "duration": 6,
-      "hurry": [3, 4],
-      "isInCity": false
-    },
-    {
-      "name": "ходишь на уроки танцев",
-      "probability": 30,
-      "duration": 1.5,
-      "hurry": [1, 2],
-      "isInCity": true
-    },
-    {
-      "name": "слушаешь музыку и расслабляешься",
-      "probability": 80,
-      "duration": 1,
-      "hurry": [0],
-      "isInCity": false
-    },
-    {
-      "name": "рисуешь или занимаешься творчеством",
-      "probability": 40,
-      "duration": 1.5,
-      "hurry": [0, 1],
-      "isInCity": false
-    },
-    {
-      "name": "разбираешь старые вещи",
-      "probability": 30,
-      "duration": 1.5,
-      "hurry": [1],
-      "isInCity": false
-    },
-    {
-      "name": "изучаешь новый язык",
-      "probability": 25,
-      "duration": 2,
-      "hurry": [1, 2],
-      "isInCity": false
-    }
-  ]
-  
+  {
+    "name": "написать смс",
+    "probability": 100,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "просто хочу ему написать"
+  },
+  {
+    "name": "кушаешь еду",
+    "probability": 100,
+    "duration": 0.5,
+    "hurry": [0, 1],
+    "isInCity": false
+  },
+  {
+    "name": "в церкви",
+    "probability": 90,
+    "duration": 2,
+    "hurry": [1, 2],
+    "isInCity": true,
+    "condition": "weekDay === 1"
+  },
+  {
+    "name": "готовлюсь к экзаменам",
+    "probability": 20,
+    "duration": 2,
+    "hurry": [2, 4],
+    "isInCity": false,
+    "condition": "isWorkingDay(weekDay)"
+  },
+  {
+    "name": "тренируешься в тренажёрном зале",
+    "probability": 50,
+    "duration": 1,
+    "hurry": [1],
+    "isInCity": true
+  },
+  {
+    "name": "встречаешься с подругами в кафе",
+    "probability": 45,
+    "duration": 1.5,
+    "hurry": [1],
+    "isInCity": true
+  },
+  {
+    "name": "шопинг",
+    "probability": 40,
+    "duration": 1.5,
+    "hurry": [1, 2],
+    "isInCity": true
+  },
+  {
+    "name": "учишься",
+    "probability": 70,
+    "duration": 3,
+    "hurry": [0, 1, 3],
+    "isInCity": true,
+    "condition": "!isWorkingDay(weekDay)"
+  },
+  {
+    "name": "отдыхаешь",
+    "probability": 90,
+    "duration": 2,
+    "hurry": [0],
+    "isInCity": false
+  },
+  {
+    "name": "гуляешь",
+    "probability": 80,
+    "duration": 1.5,
+    "hurry": [0],
+    "isInCity": true
+  },
+  {
+    "name": "читаешь книгу",
+    "probability": 70,
+    "duration": 1,
+    "hurry": [0, 4],
+    "isInCity": false
+  },
+  {
+    "name": "смотришь сериал",
+    "probability": 50,
+    "duration": 1.5,
+    "hurry": [0],
+    "isInCity": false
+  },
+  {
+    "name": "играешь в игры",
+    "probability": 40,
+    "duration": 1.5,
+    "hurry": [0],
+    "isInCity": false
+  },
+  {
+    "name": "общаешься с друзьями",
+    "probability": 30,
+    "duration": 2,
+    "hurry": [1, 2],
+    "isInCity": true
+  },
+  {
+    "name": "прогуливаешься",
+    "probability": 70,
+    "duration": 1.5,
+    "hurry": [0],
+    "isInCity": true
+  },
+  {
+    "name": "посещаешь мероприятие",
+    "probability": 20,
+    "duration": 2,
+    "hurry": [2, 3],
+    "isInCity": true
+  },
+  {
+    "name": "покупаешь продукты",
+    "probability": 50,
+    "duration": 1,
+    "hurry": [1],
+    "isInCity": false
+  },
+  {
+    "name": "делаешь уборку",
+    "probability": 40,
+    "duration": 1.5,
+    "hurry": [1],
+    "isInCity": false
+  },
+  {
+    "name": "готовишь",
+    "probability": 60,
+    "duration": 1.5,
+    "hurry": [1],
+    "isInCity": false
+  },
+  {
+    "name": "посещаешь родственников",
+    "probability": 30,
+    "duration": 2,
+    "hurry": [2],
+    "isInCity": true
+  },
+  {
+    "name": "проводишь время с друзьями",
+    "probability": 50,
+    "duration": 2,
+    "hurry": [2],
+    "isInCity": true
+  },
+  {
+    "name": "пьешь кофе в кофейне",
+    "probability": 40,
+    "duration": 1.5,
+    "hurry": [2],
+    "isInCity": true
+  },
+  {
+    "name": "встречаешься с друзьями",
+    "probability": 30,
+    "duration": 2,
+    "hurry": [2],
+    "isInCity": true
+  },
+  {
+    "name": "смотришь фильм",
+    "probability": 50,
+    "duration": 1.5,
+    "hurry": [0, 1],
+    "isInCity": false
+  },
+  {
+    "name": "путешествуешь в другой город",
+    "probability": 10,
+    "duration": 6,
+    "hurry": [3, 4],
+    "isInCity": false
+  },
+  {
+    "name": "ходишь на уроки танцев",
+    "probability": 30,
+    "duration": 1.5,
+    "hurry": [1, 2],
+    "isInCity": true
+  },
+  {
+    "name": "слушаешь музыку и расслабляешься",
+    "probability": 80,
+    "duration": 1,
+    "hurry": [0],
+    "isInCity": false
+  },
+  {
+    "name": "рисуешь или занимаешься творчеством",
+    "probability": 40,
+    "duration": 1.5,
+    "hurry": [0, 1],
+    "isInCity": false
+  },
+  {
+    "name": "разбираешь старые вещи",
+    "probability": 30,
+    "duration": 1.5,
+    "hurry": [1],
+    "isInCity": false
+  },
+  {
+    "name": "изучаешь новый язык",
+    "probability": 25,
+    "duration": 2,
+    "hurry": [1, 2],
+    "isInCity": false
+  },
+
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "люблю его"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "хочу его внимания"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "хочу его любви"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "хочу его заботы"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "рассказать, что у меня сегодня случилось"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "хочу его поддержки"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "хочу его внимания"
+  },
+  {
+    "name": "написать смс",
+    "probability": 60,
+    "duration": 0.1,
+    "hurry": [0],
+    "isInCity": false,
+    "reason": "рассказать, какое у меня настроение и почему"
+  }
+]
