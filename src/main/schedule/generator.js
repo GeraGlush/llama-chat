@@ -4,7 +4,9 @@ export async function generateRandomSchedule() {
   const weekDay = new Date().getDay(); // 0 - Sunday, 1 - Monday, ..., 6 - Saturday
   const schedule = [];
 
-  const activities = await getFileData('/src/main/schedule/activities.json');
+  const activities = shuffleArray(
+    await getFileData('/src/main/schedule/activities.json'),
+  );
 
   schedule.push({
     duration: `00-${getRandomTime(7, 8)}`,
@@ -26,18 +28,23 @@ export async function generateRandomSchedule() {
       : getRandomTime(10, 14);
     const endTime = getNextTime(startTime, activity.duration);
     const activityTime = `${startTime}-${endTime}`;
+    delete activity.probability;
+
     if (activity.isInCity) {
       const travelTimeBefore = `${getPreviousTime(startTime, 0.5)}-${startTime}`;
       const travelTimeAfter = `${endTime}-${getNextTime(endTime, 0.75)}`;
+
       schedule.push({
         duration: travelTimeBefore,
         name: 'собираюсь, чтобы ' + activity.name,
       });
+
       schedule.push({
+        ...activity,
         duration: activityTime,
-        name: activity.name,
         hurry: getRandomElFromAray(activity.hurry),
       });
+
       schedule.push({
         duration: travelTimeAfter,
         name: 'добираюсь домой с ' + activity.name,
@@ -45,8 +52,8 @@ export async function generateRandomSchedule() {
       });
     } else {
       schedule.push({
+        ...activity,
         duration: activityTime,
-        name: activity.name,
         hurry: getRandomElFromAray(activity.hurry),
       });
     }
@@ -114,4 +121,12 @@ function isWorkingDay(day) {
 
 function getRandomElFromAray(array) {
   return array[Math.floor(Math.random() * array.length)];
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }

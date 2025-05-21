@@ -74,8 +74,8 @@ async function createAssistant() {
     name: 'Milena',
     model: 'gpt-4o',
     instructions: getPromt(),
-    temperature: 1.1,
-    top_p: 1.0,
+    temperature: 0.7,
+    top_p: 0.9,
   });
 
   console.log('Создан новый ассистент:', assistant.id);

@@ -2,6 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { generateRandomSchedule } from './generator.js';
 import { generateRandomMood } from '../brain/mood/mood.js';
+import { InitDialog } from '../talking/answer.js';
+import { getFileData, setFileData } from '../../helpers.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const scheduleFile = path.join(__dirname, 'schedule.json');
@@ -16,13 +18,19 @@ async function ensureSchedule(userId) {
   let scheduleExists = await fs.pathExists(scheduleFile);
 
   if (scheduleExists) {
-    let scheduleData = await fs.readJson(scheduleFile);
-    if (scheduleData.date === today) {
+    let scheduleData = await fs.readJson(scheduleFile).catch((err) => {
+      return;
+    });
+    if (scheduleData?.date === today) {
       return scheduleData.activities;
     }
   }
   const newSchedule = await generateRandomSchedule();
-  await generateRandomMood(userId);
+  const newEmotions = await generateRandomMood();
+  const person = await getFileData(`peoples/${userId}.json`);
+  person.mood.emotions = newEmotions;
+  await setFileData(`peoples/${userId}.json`, person);
+
   await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
   return newSchedule;
 }
@@ -105,4 +113,22 @@ function getActivityDescription(activity) {
   };
   const hurry = hurryDescription[activity.hurry];
   return `Сейчас ты ${activity.name || 'ничем особо не занята'}. Уровень твоей занятости: ${hurry}`;
+}
+
+export async function watchActivity(client, person) {
+  let lastActivityKey = null;
+
+  while (true) {
+    const activity = await getActivity(person.userId);
+
+    const currentKey = `${activity.name}-${activity.duration}`;
+
+    if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
+      const intent = activity.reason || null;
+      lastActivityKey = currentKey;
+      await InitDialog(client, person, null, intent);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
 }

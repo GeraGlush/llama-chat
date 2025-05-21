@@ -10,84 +10,14 @@ function getRandomMood() {
   return emotions[Math.floor(Math.random() * emotions.length)];
 }
 
-export async function generateRandomMood(userId) {
-  const person = await getFileData(`peoples/${userId}.json`);
+export async function generateRandomMood() {
   const random = () => {
     return Math.floor(Math.random() * 3) + 1;
   };
-  person.mood.emotions = {
+
+  return {
     [getRandomMood()]: random(),
   };
-  await setFileData(`peoples/${userId}.json`, person);
-}
-
-// Функция сопоставления эмоций с твоими категориями
-function mapToCustomEmotions(predictions) {
-  const threshold = 0.1; // Убираем эмоции с низкой уверенностью
-  let detectedEmotions = [];
-
-  predictions.forEach(({ label, score }) => {
-    if (score >= threshold) {
-      for (const [customEmotion, synonyms] of Object.entries(emotionLexicon)) {
-        if (
-          synonyms.includes(label) &&
-          !detectedEmotions.some((e) => e.emotion === customEmotion)
-        ) {
-          detectedEmotions.push({ emotion: customEmotion, score });
-        }
-      }
-    }
-  });
-
-  return detectedEmotions.length > 0
-    ? detectedEmotions
-    : [{ emotion: 'neutral', score: 1 }];
-}
-
-export function getUpdatedMood(previousEmotions, newEmotions) {
-  const DECAY_RATE = 0.02; // Снижаем "устаревшие" эмоции на 0.02 за сообщение
-  let updatedEmotions = { ...previousEmotions }; // Делаем копию объекта
-
-  const newEmotionsMap = Object.fromEntries(
-    newEmotions.map((e) => [e.emotion, e.score]),
-  );
-
-  for (const emotion in previousEmotions) {
-    if (newEmotionsMap[emotion] !== undefined) {
-      updatedEmotions[emotion] = newEmotionsMap[emotion];
-    } else {
-      updatedEmotions[emotion] = Math.max(
-        previousEmotions[emotion] - DECAY_RATE,
-        0,
-      );
-
-      if (updatedEmotions[emotion] <= 0) {
-        delete updatedEmotions[emotion];
-      }
-    }
-  }
-
-  newEmotions.forEach(({ emotion, score }) => {
-    if (!(emotion in updatedEmotions)) {
-      updatedEmotions[emotion] = score;
-    }
-  });
-
-  // Проверяем нейтральность
-  const hasNeutral = 'neutral' in newEmotionsMap;
-  if (hasNeutral) {
-    updatedEmotions['neutral'] = newEmotionsMap['neutral'];
-  } else if ('neutral' in updatedEmotions) {
-    updatedEmotions['neutral'] = Math.max(
-      updatedEmotions['neutral'] - DECAY_RATE,
-      0,
-    );
-    if (updatedEmotions['neutral'] <= 0) {
-      delete updatedEmotions['neutral'];
-    }
-  }
-
-  return updatedEmotions;
 }
 
 export async function getMoodDescription(emotions) {

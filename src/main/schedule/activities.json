@@ -1,7 +1,8 @@
 [
   {
     "name": "написать смс",
-    "probability": 100,
+    "function": "initDialog",
+    "probability": 80,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -216,7 +217,8 @@
 
   {
     "name": "написать смс",
-    "probability": 60,
+    "function": "initDialog",
+    "probability": 40,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -224,14 +226,7 @@
   },
   {
     "name": "написать смс",
-    "probability": 60,
-    "duration": 0.1,
-    "hurry": [0],
-    "isInCity": false,
-    "reason": "хочу его внимания"
-  },
-  {
-    "name": "написать смс",
+    "function": "initDialog",
     "probability": 60,
     "duration": 0.1,
     "hurry": [0],
@@ -240,7 +235,8 @@
   },
   {
     "name": "написать смс",
-    "probability": 60,
+    "function": "initDialog",
+    "probability": 30,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -248,7 +244,8 @@
   },
   {
     "name": "написать смс",
-    "probability": 60,
+    "function": "initDialog",
+    "probability": 30,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -256,6 +253,7 @@
   },
   {
     "name": "написать смс",
+    "function": "initDialog",
     "probability": 60,
     "duration": 0.1,
     "hurry": [0],
@@ -264,7 +262,8 @@
   },
   {
     "name": "написать смс",
-    "probability": 60,
+    "function": "initDialog",
+    "probability": 50,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -272,10 +271,11 @@
   },
   {
     "name": "написать смс",
-    "probability": 60,
+    "function": "initDialog",
+    "probability": 40,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
-    "reason": "рассказать, какое у меня настроение и почему"
+    "reason": "рассказать что-то интересное, что случилось у меня сегодня"
   }
 ]
