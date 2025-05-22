@@ -12,8 +12,8 @@ let threadId;
 
 export async function init() {
   const data = await getFileData('src/main/brain/settings.json');
-  assistantId = data.assistantId;
-  threadId = data.threadId;
+  // assistantId = data.assistantId;
+  // threadId = data.threadId;
 
   if (!assistantId) {
     assistantId = await createAssistant();

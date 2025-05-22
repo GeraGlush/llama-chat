@@ -36,7 +36,7 @@ async function ensureSchedule(userId) {
 }
 async function getCurrentActivity(activities) {
   const warsawTime = new Date().toLocaleTimeString('ru-RU', {
-    timeZone: 'Europe/Warsaw',
+    timeZone: 'Europe/Moscow',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -116,17 +116,21 @@ function getActivityDescription(activity) {
   return `Сейчас ты ${activity.name || 'ничем особо не занята'}. Уровень твоей занятости: ${hurry}`;
 }
 
-export async function watchActivity(client, person) {
+export async function watchFunctions(client, person) {
   let lastActivityKey = null;
 
   while (true) {
-    const activity = await getActivity(person.userId);
+    const activities = (await ensureSchedule(person.userId)).filter(
+      (activity) => activity.function,
+    );
+    const activity = await getCurrentActivity(activities);
 
     const currentKey = `${activity.name}-${activity.duration}`;
 
     if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
       lastActivityKey = currentKey;
-      await InitDialog(client, person, activity.reason);
+      const updatedPerson = await getFileData(`peoples/${person.userId}.json`); // важно! За время ожидания мог измениться
+      await InitDialog(client, updatedPerson, activity.reason);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 30000));

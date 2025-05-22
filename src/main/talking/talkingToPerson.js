@@ -2,7 +2,7 @@ import { setFileData } from '../../helpers.js';
 import { NewMessage } from 'telegram/events/index.js';
 import { answerToSinglePerson } from './answer.js';
 import { Api } from 'telegram';
-import { watchActivity } from '../schedule/mySchedule.js';
+import { watchFunctions } from '../schedule/mySchedule.js';
 
 let talking = false;
 
@@ -12,7 +12,7 @@ async function setup(client, person) {
     handleNewMessage(update, client, person);
   }, new NewMessage({}));
 
-  watchActivity(client, person);
+  watchFunctions(client, person);
   console.log(`Listening for new messages from ${person.username}...`);
 }
 

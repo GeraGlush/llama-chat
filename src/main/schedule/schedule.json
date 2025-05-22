@@ -28,7 +28,7 @@
     {
       "name": "написать смс",
       "function": "initDialog",
-      "duration": "19:21-19:27",
+      "duration": "21:35-21:44",
       "hurry": 0,
       "isInCity": false,
       "reason": "хочу его внимания"
@@ -39,11 +39,6 @@
       "hurry": 2,
       "isInCity": true
     },
-    { "duration": "21:08-00", "hurry": 4, "name": "сон" },
-    {
-      "duration": "21:27-22:12",
-      "name": "добираюсь домой с встречаешься с друзьями",
-      "hurry": 2
-    }
+    { "duration": "22:30-00", "hurry": 4, "name": "сон" }
   ]
 }

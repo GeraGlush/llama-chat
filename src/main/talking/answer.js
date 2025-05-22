@@ -1,4 +1,4 @@
-import { setFileData } from '../../helpers.js';
+import { getFileData, setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
 import {
@@ -127,9 +127,10 @@ export async function InitDialog(client, person, intent) {
       dailyDiff / (1000 * 60 * 60),
     )} часов назад. Так что не здоровайся, ты уже это сделала.`;
   }
-  promptMessage += await generateMilenaReply(
+
+  await generateMilenaReply(
     client,
-    person.userId,
+    person,
     `${promptMessage} Почему ты решила написать ${intent}`,
   );
 }

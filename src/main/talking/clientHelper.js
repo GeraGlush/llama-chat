@@ -1,31 +1,41 @@
 import { Api } from 'telegram';
 
 export async function setTypingStatus(client, username) {
-  await client.invoke(
-    new Api.messages.SetTyping({
-      peer: username,
-      action: new Api.SendMessageTypingAction(),
-    }),
-  );
+  try {
+    await client.invoke(
+      new Api.messages.SetTyping({
+        peer: username,
+        action: new Api.SendMessageTypingAction(),
+      }),
+    );
+  } catch (error) {}
 }
 
 export async function cancelTypingStatus(client, username) {
-  await client.invoke(
-    new Api.messages.SetTyping({
-      peer: username,
-      action: new Api.SendMessageCancelAction(),
-    }),
-  );
+  try {
+    await client.invoke(
+      new Api.messages.SetTyping({
+        peer: username,
+        action: new Api.SendMessageCancelAction(),
+      }),
+    );
+  } catch (error) {}
 }
 
 export async function sendReaction(client, username, messageId, emoji = '❤️') {
-  await client.invoke(
-    new Api.messages.SendReaction({
-      peer: username,
-      msgId: messageId,
-      reaction: [new Api.ReactionEmoji({ emoticon: emoji })],
-      big: false,
-      addToRecent: true,
-    }),
-  );
+  try {
+    await client.invoke(
+      new Api.messages.SendReaction({
+        peer: username,
+        msgId: messageId,
+        reaction: [new Api.ReactionEmoji({ emoticon: emoji })],
+        big: false,
+        addToRecent: true,
+      }),
+    );
+  } catch (error) {
+    if (error.errorMessage !== 'MESSAGE_NOT_MODIFIED') {
+      throw error;
+    }
+  }
 }

@@ -1,0 +1,10 @@
+Connecting...
+[33m[2025-05-23T01:05:53.805] [INFO] - [Running gramJS version 2.26.7][0m
+[33m[2025-05-23T01:05:53.827] [INFO] - [Connecting to 149.154.167.41:80/TCPFull...][0m
+[33m[2025-05-23T01:05:53.900] [INFO] - [Connection to 149.154.167.41:80/TCPFull complete!][0m
+[33m[2025-05-23T01:05:53.902] [INFO] - [Using LAYER 193 for initial connect][0m
+[33m[2025-05-23T01:05:53.989] [INFO] - [System clock is wrong, set time offset to 34778s][0m
+You should now be connected.
+Создан новый ассистент: asst_y0yXL4KYIgfRHIQF6WZuV72V
+Connecting done
+Listening for new messages from geragl...
