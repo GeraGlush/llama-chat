@@ -1,12 +1,22 @@
 import { setFileData } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
-import { getMood, getMoodDescription } from '../brain/mood/mood.js';
+import {
+  cancelTypingStatus,
+  sendReaction,
+  setTypingStatus,
+} from './clientHelper.js';
 
 const pendingGenerations = new Map();
 
-async function generateMilenaReply(client, person, message, state) {
+async function generateMilenaReply(client, person, message) {
+  let fullMessage = '';
+  await setTypingStatus(client, person.username);
+
   const sendMessageFunction = async (sentence) => {
+    fullMessage += sentence;
+    sentence = sentence.replace(/\{MOMENT_MOOD\s*=\s*([^}]+)\}/, '').trim();
+
     const emoji = sentence.match(
       /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
     );
@@ -19,96 +29,155 @@ async function generateMilenaReply(client, person, message, state) {
     if (msg.length > 0) {
       await client.sendMessage(person.username, { message: msg });
     }
+
+    // Отключаем статус typing
+    await cancelTypingStatus(client, person.username);
   };
 
-  const contextPrefix = [];
+  const moodMomentPromt =
+    'Если сообщение вызывает у тебя телесную или эмоциональную реакцию — в конце ответа на новой строке напиши {MOMENT_MOOD=...}.';
+  let promt = moodMomentPromt;
+
   const lastState = person.lastState || {};
+  const moodChanged = person.mood?.description !== lastState.moodDescription;
+  const momentChanged = person.mood?.moment !== lastState.moment;
+  const activityChanged =
+    person.activity?.description !== lastState.activityDescription;
 
-  if (
-    state.moodDescription &&
-    state.moodDescription !== lastState.moodDescription
-  ) {
-    contextPrefix.push(`Твое настроение: ${state.moodDescription}.`);
-  }
+  const stateChanged = moodChanged || momentChanged || activityChanged;
 
-  if (
-    state.activity &&
-    state.activity !== 'написать смс' &&
-    state.activity !== lastState.activity
-  ) {
-    contextPrefix.push(`Чем ты сейчас занимаешься: ${state.activity}.`);
-  }
+  if (stateChanged)
+    if (moodChanged && person.mood?.description)
+      promt += person.mood.description;
+  if (momentChanged && person.mood?.moment)
+    promt += `Ты чувствуешь: ${person.mood.moment}`;
+  if (activityChanged && person.activity?.description)
+    promt += person.activity.description;
 
-  if (state.promt && state.promt !== lastState.promt)
-    contextPrefix.push(state.promt);
-
-  const fullPrompt =
-    `${contextPrefix.length > 0 ? `[${contextPrefix.join(' ')}]` : ''} ${message ?? ''}`.trim();
-  console.log(`[${contextPrefix.join(' ')}]`);
-
-  const answer = await generate(fullPrompt, sendMessageFunction);
-  pushMessage(person, answer);
+  promt = `[${promt}]`;
 
   person.lastState = {
-    ...person.lastState,
-    moodDescription: state.moodDescription ?? person.lastState?.mood,
-    activity: state.activity ?? person.lastState?.activity,
+    moodDescription: person.mood.description,
+    moment: person.mood.moment,
+    activityDescription: person.activity.description,
   };
 
+  console.log(promt);
+
+  await generate(`${promt}\n${person.name}: ${message}`, sendMessageFunction);
+
+  const momentMoodMatch = fullMessage.match(/\{MOMENT_MOOD=(.*?)\}/);
+  const momentMood = momentMoodMatch ? momentMoodMatch[1].trim() : null;
+
+  if (momentMood) {
+    console.log('MOMENT_MOOD =', momentMood);
+    person.mood.moment = momentMood;
+
+    // Если позитивные эмоции — ставим реакцию
+    const isPositive =
+      /рад|подмигив|восторг|счаст|класс|мил|удовольств|улыб|люб|тепло/i.test(
+        momentMood,
+      );
+    if (isPositive) {
+      const messages = (
+        await client.getMessages(person.username, { limit: 10 })
+      ).reverse();
+      let lastUserMessageId = null;
+
+      // Перебираем сообщения, чтобы найти последнее сообщение от пользователя
+      for (let i = 0; i < messages.length; i++) {
+        // Проверяем, что сообщение от пользователя и не от нас
+        if (!messages[i].out) {
+          lastUserMessageId = messages[i].id; // Сохраняем ID последнего сообщения от пользователя
+        }
+      }
+
+      if (lastUserMessageId) {
+        await sendReaction(client, person.username, lastUserMessageId, '❤️');
+      }
+    }
+  }
+
+  person.lastMessageDate = Date.now();
   await setFileData(`peoples/${person.userId}.json`, person);
 }
 
-export async function InitDialog(client, person, message, intent) {
+export async function InitDialog(client, person, intent) {
   console.log(
     `[milenaInitiatesDialog] Инициируем сообщение для ${person.username}`,
   );
-  pushMessage(person, message, 'user', person.username);
 
-  const lastState = person.lastState || {};
-
-  const activity = intent || (await getActivity(person.userId)).name;
-
-  const state = {};
-
-  const mood = await getMood(person.userId);
-  if (mood && mood !== lastState?.mood) {
-    state.moodDescription = mood.description;
+  const diff = Date.now() - person.lastMessageDate;
+  if (diff < 5 * 60 * 1000) {
+    console.log(
+      'C прошлого сообщения прошло меньше 5 минут, так что не инициируем новый диалог',
+    );
+    return;
   }
 
-  if (activity && activity !== lastState.activity) {
-    state.activity = activity;
-  }
+  const activity = (await getActivity(person.userId)).name;
+  person.activity = activity;
 
-  state.promt =
+  let promptMessage =
     'Ты решила начать переписку. Напиши что-то живое и естественное — как будто реально открываешь чат, чтобы поболтать. Никаких общих фраз, только личный заход.';
 
-  await generateMilenaReply(client, person, message, state);
+  const dailyDiff = Date.now() - person.lastMessageDate;
+  if (dailyDiff < 24 * 60 * 60 * 1000) {
+    promptMessage += `\nТы уже переписывалась с ${person.name} сегодня, в последний раз ${Math.floor(
+      dailyDiff / (1000 * 60 * 60),
+    )} часов назад. Так что не здоровайся, ты уже это сделала.`;
+  }
+  promptMessage += await generateMilenaReply(
+    client,
+    person.userId,
+    `${promptMessage} Почему ты решила написать ${intent}`,
+  );
 }
 
 export async function answerToSinglePerson(client, person, message) {
   const lastMessage = await client.getMessages(person.username, { limit: 1 });
-
   if (lastMessage[0]?.out) {
-    await setFileData(`peoples/${person.userId}.json`, person);
     return;
   }
-
-  pushMessage(person, message, 'user', person.username);
 
   if (pendingGenerations.has(person.userId)) {
     console.log(
-      `[answerToSinglePerson] Сообщение добавлено к ожиданию для ${person.username}`,
+      `[answerToSinglePerson] Добавлено в очередь для ${person.username}`,
     );
-    pendingGenerations.get(person.userId).messages.push(message);
+    const pending = pendingGenerations.get(person.userId);
+    pending.messages.push(message);
+
+    // Перезапускаем таймер
+    clearTimeout(pending.timer);
+    pending.timer = setTimeout(async () => {
+      await flushPendingMessages(client, person);
+    }, 3000);
+
     return;
   }
 
+  console.log(
+    `[answerToSinglePerson] Начинаем новую очередь для ${person.username}`,
+  );
+
+  const timer = setTimeout(async () => {
+    await flushPendingMessages(client, person);
+  }, 3000);
+
   pendingGenerations.set(person.userId, {
     messages: [message],
-    isGenerating: true,
+    timer,
   });
+}
 
-  console.log('Получение данных для ответа...');
+async function flushPendingMessages(client, person) {
+  const pending = pendingGenerations.get(person.userId);
+  if (!pending) return;
+
+  pendingGenerations.delete(person.userId);
+
+  const combinedMessage = pending.messages.join('. ');
+
   const activity = await getActivity(person.userId);
   person.activity = activity;
 
@@ -116,27 +185,5 @@ export async function answerToSinglePerson(client, person, message) {
     await waitForActivityDone(activity.hurry);
   }
 
-  const lastState = person.lastState || {};
-  const state = {};
-  if (activity.name && activity.name !== lastState.activity) {
-    state.activity = activity.name;
-  }
-  if (person.mood.emotions && person.mood.emotions !== lastState.emotions) {
-    state.moodDescription = await getMoodDescription(person.mood.emotions);
-  }
-
-  const messagesToAnswerOn = pendingGenerations
-    .get(person.userId)
-    .messages.join('. ');
-
-  console.log('Генерация ответа...');
-  await generateMilenaReply(client, person, messagesToAnswerOn, state);
-
-  pendingGenerations.delete(person.userId);
+  await generateMilenaReply(client, person, combinedMessage);
 }
-
-const pushMessage = (person, content, role = 'assistant', name = 'Милена') => {
-  const maxDialogLength = 15;
-  person.dialog.push({ role, name, content });
-  if (person.dialog.length > maxDialogLength) person.dialog.shift();
-};

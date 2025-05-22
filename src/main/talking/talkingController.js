@@ -6,12 +6,6 @@ export async function initTalking(client) {
   const people = peopesDataPaths.map((path) => getFileData(path));
 
   people.forEach(async (person) => {
-    const dialog = await client.getMessages(person.username, { limit: 10 });
-    person.dialog = dialog.map((message) => ({
-      role: message.out ? 'user' : 'assistant',
-      name: message.out ? 'Ты' : 'Собеседник',
-      content: message.text,
-    }));
     startTalkingToPerson(client, person);
   });
 }

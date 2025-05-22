@@ -19,19 +19,24 @@ async function setup(client, person) {
 async function handleNewMessage(update, client, person) {
   const userId = Number(update.message.peerId.userId.value);
 
-  if (userId === person.userId) {
-    console.log('New message from', person.username);
+  if (userId !== person.userId) return;
 
-    const messageDate = new Date(update.message.date * 1000);
-    if (messageDate > person.lastResponseTime) {
-      // Проверка, является ли сообщение голосовым
-      if (update.message.media && update.message.media.document) {
-        const isVoiceMessage =
-          update.message.media.document.mimeType.startsWith('audio/ogg');
+  console.log('New message from', person.username);
 
-        if (isVoiceMessage) {
-          // Пересылаем голосовое сообщение боту @AudioMessBot
-          const forwardedMessage = await client.invoke(
+  const messageDate = new Date(update.message.date * 1000);
+  if (
+    !person.lastMessageDate ||
+    messageDate.getTime() > person.lastMessageDate
+  ) {
+    const userId = Number(update.message.peerId.userId.value);
+
+    if (update.message.media && update.message.media.document) {
+      const isVoiceMessage =
+        update.message.media.document.mimeType.startsWith('audio/ogg');
+
+      if (isVoiceMessage) {
+        try {
+          await client.invoke(
             new Api.messages.ForwardMessages({
               fromPeer: update.message.peerId,
               id: [update.message.id],
@@ -39,55 +44,48 @@ async function handleNewMessage(update, client, person) {
             }),
           );
 
-          // Ожидание ответа от @AudioMessBot
           const botPeer = await client.getEntity('AudioMessBot');
           let recognizedText = '';
 
-          try {
-            // Устанавливаем цикл ожидания ответа с таймаутом
-            for (let i = 0; i < 10; i++) {
-              // Пытаемся 10 раз, с интервалом в 2 секунды
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-              const history = await client.invoke(
-                new Api.messages.GetHistory({
-                  peer: botPeer,
-                  limit: 1,
-                }),
-              );
+          for (let i = 0; i < 10; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            const history = await client.invoke(
+              new Api.messages.GetHistory({
+                peer: botPeer,
+                limit: 1,
+              }),
+            );
 
-              const lastMessage = history.messages[0];
-              if (
-                lastMessage &&
-                lastMessage.message &&
-                !lastMessage.message.includes(' Распознаю голос')
-              ) {
-                recognizedText = lastMessage.message.replace('🗣 ', '');
-                break;
-              }
+            const lastMessage = history.messages[0];
+            if (
+              lastMessage &&
+              lastMessage.message &&
+              !lastMessage.message.includes(' Распознаю голос')
+            ) {
+              recognizedText = lastMessage.message.replace('🗣 ', '');
+              break;
             }
-          } catch (error) {
-            console.error('Error while waiting for bot response:', error);
           }
 
           if (recognizedText) {
             await answerToSinglePerson(client, person, recognizedText);
           }
+        } catch (error) {
+          console.error('Voice message error:', error);
         }
-      } else {
-        const text = update.message.message;
-        await answerToSinglePerson(client, person, text);
+        return;
       }
-
-      person.lastResponseTime = new Date().getTime();
-      await setFileData(`peoples/${userId}.json`, person);
     }
+
+    const text = update.message.message;
+    await answerToSinglePerson(client, person, text);
   }
 }
 
 export async function startTalkingToPerson(client, person) {
   if (!client) return console.error('No client provided to', person.username);
 
-  fetchLatestMessages(client, person);
+  await fetchLatestMessages(client, person);
   if (!talking) await setup(client, person);
 }
 
@@ -96,28 +94,35 @@ async function fetchLatestMessages(client, person) {
     limit: 20,
   });
 
-  const lastResponseTime = person.lastResponseTime
-    ? new Date(person.lastResponseTime)
-    : new Date(new Date().getTime() - 12 * 60 * 60 * 1000);
+  const lastMessageDate = person.lastMessageDate
+    ? new Date(person.lastMessageDate)
+    : new Date(Date.now() - 12 * 60 * 60 * 1000);
 
-  const filtredMessages = messages.filter((msg) => {
-    const messageDate = new Date(msg.date * 1000);
-    return messageDate > lastResponseTime;
+  const filteredMessages = messages.filter((msg) => {
+    const messageDate = new Date(msg.date * 1000).getTime();
+    return messageDate > lastMessageDate.getTime();
   });
 
-  let newMessages = [];
+  const newMessages = [];
 
-  for (let i = 0; i < filtredMessages.length - 1; i++) {
-    if (filtredMessages[i].out) break;
+  for (const msg of filteredMessages) {
+    if (msg.out) break;
+    if (msg.text) {
+      newMessages.push({
+        text: msg.text,
+        date: new Date(msg.date * 1000),
+      });
+    }
   }
-  newMessages = newMessages.reverse();
+
+  newMessages.reverse();
 
   if (newMessages.length > 0) {
     console.log('New unreaded from', person.username);
     const combinedText = newMessages.map((msg) => msg.text).join('. ');
-    await answerToSinglePerson(client, person, combinedText);
-    person.lastResponseTime = new Date().getTime();
+
     const userId = messages[0].peerId.userId.value;
-    setFileData(`peoples/${Number(userId)}.json`, person);
+    await answerToSinglePerson(client, person, combinedText);
+    await setFileData(`peoples/${Number(userId)}.json`, person);
   }
 }

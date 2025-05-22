@@ -26,9 +26,9 @@ async function ensureSchedule(userId) {
     }
   }
   const newSchedule = await generateRandomSchedule();
-  const newEmotions = await generateRandomMood();
+  const newMood = await generateRandomMood();
   const person = await getFileData(`peoples/${userId}.json`);
-  person.mood.emotions = newEmotions;
+  person.mood = newMood;
   await setFileData(`peoples/${userId}.json`, person);
 
   await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
@@ -78,6 +78,7 @@ export async function waitForActivityDone(hurry) {
   if (hurry === 4) {
     while (activity.hurry == 4) {
       activity = await getActivity();
+      console.log(`Не могу ответить, занята: ${activity.name}...`);
       await new Promise((resolve) => setTimeout(resolve, 60000));
     }
     return;
@@ -124,11 +125,10 @@ export async function watchActivity(client, person) {
     const currentKey = `${activity.name}-${activity.duration}`;
 
     if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
-      const intent = activity.reason || null;
       lastActivityKey = currentKey;
-      await InitDialog(client, person, null, intent);
+      await InitDialog(client, person, activity.reason);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await new Promise((resolve) => setTimeout(resolve, 30000));
   }
 }

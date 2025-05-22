@@ -1,6 +1,10 @@
 import { getFileData, setFileData } from '../../../helpers.js';
 import { emotions } from './emotions.js';
 
+const descriptions = await getFileData(
+  '/src/main/brain/mood/descriptions.json',
+);
+
 export async function getMood(userId) {
   const data = await getFileData(`peoples/${userId}.json`);
   return data.mood.emotions;
@@ -14,17 +18,16 @@ export async function generateRandomMood() {
   const random = () => {
     return Math.floor(Math.random() * 3) + 1;
   };
+  const emotions = { [getRandomMood()]: random() };
 
   return {
-    [getRandomMood()]: random(),
+    emotions,
+    description: await getMoodDescription(emotions),
   };
 }
 
-export async function getMoodDescription(emotions) {
+export function getMoodDescription(emotions) {
   const descriptionsMood = [];
-  const descriptions = await getFileData(
-    '/src/main/brain/mood/descriptions.json',
-  );
 
   // ✅ Проверяем, является ли `emotions` объектом, и конвертируем его в массив
   if (!Array.isArray(emotions)) {

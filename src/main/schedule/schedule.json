@@ -1,1 +1,49 @@
-{"date":"2025-05-21","activities":[{"duration":"00-07:26","hurry":4,"name":"сон"},{"duration":"09:09-15:13","hurry":3,"name":"работаешь"},{"duration":"14:43-15:13","name":"собираюсь, чтобы проводишь время с друзьями"},{"name":"проводишь время с друзьями","duration":"15:13-17:13","hurry":2,"isInCity":true},{"duration":"17:13-17:58","name":"добираюсь домой с проводишь время с друзьями","hurry":2},{"name":"готовишь","duration":"17:58-19:28","hurry":1,"isInCity":false},{"name":"написать смс","function":"initDialog","duration":"19:28-19:34","hurry":0,"isInCity":false,"reason":"хочу его любви"},{"duration":"21:54-00","hurry":4,"name":"сон"}]}
+{
+  "date": "2025-05-22",
+  "activities": [
+    { "duration": "00-07:21", "hurry": 4, "name": "сон" },
+    {
+      "name": "готовлюсь к экзаменам",
+      "duration": "14:51-16:51",
+      "hurry": 4,
+      "isInCity": false,
+      "condition": "isWorkingDay(weekDay)"
+    },
+    {
+      "name": "смотришь фильм",
+      "duration": "16:51-18:21",
+      "hurry": 0,
+      "isInCity": false
+    },
+    {
+      "name": "покупаешь продукты",
+      "duration": "18:21-19:21",
+      "hurry": 1,
+      "isInCity": false
+    },
+    {
+      "duration": "18:57-19:27",
+      "name": "собираюсь, чтобы встречаешься с друзьями"
+    },
+    {
+      "name": "написать смс",
+      "function": "initDialog",
+      "duration": "19:21-19:27",
+      "hurry": 0,
+      "isInCity": false,
+      "reason": "хочу его внимания"
+    },
+    {
+      "name": "встречаешься с друзьями",
+      "duration": "19:27-21:27",
+      "hurry": 2,
+      "isInCity": true
+    },
+    { "duration": "21:08-00", "hurry": 4, "name": "сон" },
+    {
+      "duration": "21:27-22:12",
+      "name": "добираюсь домой с встречаешься с друзьями",
+      "hurry": 2
+    }
+  ]
+}
