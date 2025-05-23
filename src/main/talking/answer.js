@@ -17,32 +17,52 @@ export async function generateMilenaReply(client, person, message) {
 
   const sendMessageFunction = async (sentence) => {
     fullMessage += sentence;
+
     sentence = sentence
       .replace(/\{MOMENT_MOOD\s*=\s*([^}]+)\}/, '')
       .replace('—', '-')
       .trim();
 
-    const emojiOnly = sentence.match(
-      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]{1,2}$/u,
-    );
+    // Проверка на одиночный emoji с точкой/воскл./пробелом
+    const emojiOnly = sentence.match(/^\p{Emoji}(?:[.! ]?)$/u);
 
     if (emojiOnly) {
-      const emoji = emojiOnly[0];
+      const emoji = emojiOnly[0].trim().replace(/[.! ]/, '');
       await sendReaction(client, person.username, emoji);
       return;
     }
 
+    // Проверка на emoji в начале строки + текст
+    const emojiWithText = sentence.match(/^(\p{Emoji})[.! ]+(.+)/u);
+
+    if (emojiWithText) {
+      const emoji = emojiWithText[1];
+      const restText = emojiWithText[2].trim();
+
+      // Сначала отправляем стикер
+      await sendReaction(client, person.username, emoji);
+
+      // Затем — текст
+      if (restText.length > 0) {
+        await client.sendMessage(person.username, { message: restText });
+      }
+
+      await cancelTypingStatus(client, person.username);
+      return;
+    }
+
+    // Пустое или только точка — игнор
     if (sentence.replace('.', '').length === 0) {
       console.log('Пустое сообщение, пропускаем отправку');
       return;
     }
 
+    // Отправка обычного текста
     const msg = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
     if (msg.length > 0) {
       await client.sendMessage(person.username, { message: msg });
     }
 
-    // Отключаем статус typing
     await cancelTypingStatus(client, person.username);
   };
 
