@@ -26,8 +26,6 @@ const getKeyFromPath = (path) => {
 export async function getFileData(key) {
   const value = await cache.get(getKeyFromPath(key));
   if (value) {
-    console.log(key, JSON.parse(value));
-
     return JSON.parse(value);
   }
   return null;
@@ -35,8 +33,6 @@ export async function getFileData(key) {
 
 export async function getKeys(path) {
   const keys = await cache.keys(path);
-  console.log(path, keys);
-
   return keys;
 }
 
