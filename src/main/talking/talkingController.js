@@ -1,9 +1,9 @@
-import { scanDir, getFileData } from '../../helpers.js';
+import { getKeys, getFileData } from '../../helpers.js';
 import { startTalkingToPerson } from './talkingToPerson.js';
 
 export async function initTalking(client) {
-  const peopesDataPaths = await scanDir('peoples');
-  const people = peopesDataPaths.map((path) => getFileData(path));
+  const peopesDataPaths = await getKeys('person_*');
+  const people = peopesDataPaths.map(async (key) => await getFileData(key));
 
   people.forEach(async (person) => {
     startTalkingToPerson(client, person);

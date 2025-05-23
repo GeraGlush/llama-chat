@@ -11,9 +11,9 @@ let assistantId;
 let threadId;
 
 export async function init() {
-  const data = await getFileData('src/main/brain/settings.json');
-  // assistantId = data.assistantId;
-  // threadId = data.threadId;
+  const data = await getFileData('settings');
+  assistantId = data.assistantId;
+  threadId = data.threadId;
 
   if (!assistantId) {
     assistantId = await createAssistant();
@@ -27,7 +27,7 @@ export async function init() {
     await ensureRunFinished(threadId);
   }
 
-  await setFileData('src/main/brain/settings.json', data);
+  await setFileData('settings', data);
 }
 
 // Проверяем активный `run`, если завис – создаем новый `thread`

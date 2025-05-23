@@ -1,36 +1,46 @@
-import fs from 'fs';
-import path from 'path';
+import 'dotenv/config';
 
-const __dirname = path.resolve();
+async function redisClient() {
+  const cache = createClient({
+    socket: {
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT,
+    },
+    password: process.env.REDIS_PASSWORD,
+  });
 
-export function getFileData(storageName) {
-  const mainDataStoragePath = storageName.includes('/Users/')
-    ? storageName
-    : path.join(__dirname, storageName);
-  const readData = fs.readFileSync(mainDataStoragePath, 'utf8');
-  const jsonData = JSON.parse(readData);
-  return jsonData;
+  await cache.connect();
+  return cache;
 }
 
-export async function scanDir(dir) {
-  const dirPath = dir.includes('/Users/') ? dir : path.join(__dirname, dir);
+export const cache = await redisClient();
 
-  try {
-    await fs.promises.access(dirPath);
-    const files = await fs.promises.readdir(dirPath);
-    return files.map((file) => path.join(dirPath, file));
-  } catch (err) {
-    console.error(`Error reading directory: ${err.message}`);
-    return [];
+const getKeyFromPath = (path) => {
+  const parts = path.split('/');
+  return parts[parts.length - 1].replace('.json', '');
+};
+
+export async function getFileData(key) {
+  const value = await cache.get(getKeyFromPath(key));
+  return JSON.parse(value);
+}
+
+export async function getFileData(key) {
+  const value = await cache.get(getKeyFromPath(key));
+  if (value) {
+    return JSON.parse(value);
   }
+  return null;
 }
 
-export function setFileData(storageName, data) {
-  const mainDataStoragePath = storageName.includes('/Users/')
-    ? storageName
-    : path.join(__dirname, storageName);
-  const jsonData = JSON.stringify(data);
-  fs.writeFileSync(mainDataStoragePath, jsonData);
+export async function getKeys(path) {
+  const keys = await cache.keys(path);
+  return keys;
+}
+
+export async function setFileData(key, data) {
+  const value = JSON.stringify(data);
+  await cache.set(getKeyFromPath(key), value);
 }
 
 export function shuffleArray(array) {

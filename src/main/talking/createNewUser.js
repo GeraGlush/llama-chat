@@ -1,4 +1,4 @@
-import { scanDir, setFileData } from '../../helpers.js';
+import { setFileData } from '../../helpers.js';
 import readline from 'readline';
 
 const rl = readline.createInterface({
