@@ -1,10 +1,10 @@
 import OpenAI from 'openai';
 import { getPromt } from './promt/promtCreator.js';
 import { getFileData, setFileData } from '../../helpers.js';
-
+import dotenv from 'dotenv';
+dotenv.config();
 const openai = new OpenAI({
-  apiKey:
-    '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',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 let assistantId;
