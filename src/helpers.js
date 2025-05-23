@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createClient } from 'redis';
 
 async function redisClient() {
   const cache = createClient({
@@ -17,17 +18,16 @@ export const cache = await redisClient();
 
 const getKeyFromPath = (path) => {
   const parts = path.split('/');
-  return parts[parts.length - 1].replace('.json', '');
+  const rawKey = parts[parts.length - 1];
+
+  return rawKey;
 };
 
 export async function getFileData(key) {
   const value = await cache.get(getKeyFromPath(key));
-  return JSON.parse(value);
-}
-
-export async function getFileData(key) {
-  const value = await cache.get(getKeyFromPath(key));
   if (value) {
+    console.log(key, JSON.parse(value));
+
     return JSON.parse(value);
   }
   return null;
@@ -35,6 +35,8 @@ export async function getFileData(key) {
 
 export async function getKeys(path) {
   const keys = await cache.keys(path);
+  console.log(path, keys);
+
   return keys;
 }
 

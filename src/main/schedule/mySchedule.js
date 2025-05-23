@@ -27,7 +27,7 @@ async function ensureSchedule(userId) {
   }
   const newSchedule = await generateRandomSchedule();
   const newMood = await generateRandomMood();
-  const person = await getFileData(`peoples/${userId}.json`);
+  const person = await await getFileData(`peoples/${userId}.json`);
   person.mood = newMood;
   await setFileData(`peoples/${userId}.json`, person);
 
@@ -129,7 +129,9 @@ export async function watchFunctions(client, person) {
 
     if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
       lastActivityKey = currentKey;
-      const updatedPerson = await getFileData(`peoples/${person.userId}.json`); // важно! За время ожидания мог измениться
+      const updatedPerson = await await getFileData(
+        `peoples/${person.userId}.json`,
+      ); // важно! За время ожидания мог измениться
       await InitDialog(client, updatedPerson, activity.reason);
     }
 

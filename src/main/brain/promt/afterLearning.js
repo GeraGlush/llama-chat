@@ -23,7 +23,9 @@ function cosineSimilarity(words1, words2) {
   return mag1 && mag2 ? dot / (mag1 * mag2) : 0;
 }
 
-const responseExamples = getFileData('src/main/brain/promt/learningData.json');
+const responseExamples = await getFileData(
+  'src/main/brain/promt/learningData.json',
+);
 
 export function findRelevantExamples(
   userMessage,
