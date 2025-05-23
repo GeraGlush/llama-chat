@@ -17,7 +17,6 @@ export async function generateMilenaReply(client, person, message) {
 
   const sendMessageFunction = async (sentence) => {
     fullMessage += sentence;
-    console.log(sentence);
     sentence = sentence
       .replace(/\{MOMENT_MOOD\s*=\s*([^}]+)\}/, '')
       .replace('—', '-')
@@ -26,8 +25,6 @@ export async function generateMilenaReply(client, person, message) {
     const emojiOnly = sentence.match(
       /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]{1,2}$/u,
     );
-
-    console.log(emojiOnly);
 
     if (emojiOnly) {
       const emoji = emojiOnly[0];
