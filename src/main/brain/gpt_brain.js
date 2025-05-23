@@ -11,7 +11,7 @@ let assistantId;
 let threadId;
 
 export async function init() {
-  const data = await await getFileData('settings');
+  const data = await getFileData('settings');
   assistantId = data.assistantId;
   threadId = data.threadId;
 
