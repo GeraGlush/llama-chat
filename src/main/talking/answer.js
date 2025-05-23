@@ -5,24 +5,37 @@ import {
   cancelTypingStatus,
   sendReaction,
   setTypingStatus,
+  readMessages,
 } from './clientHelper.js';
 
 const pendingGenerations = new Map();
 
-async function generateMilenaReply(client, person, message) {
+export async function generateMilenaReply(client, person, message) {
   let fullMessage = '';
+  await readMessages(client, person.username);
   await setTypingStatus(client, person.username);
 
   const sendMessageFunction = async (sentence) => {
     fullMessage += sentence;
-    sentence = sentence.replace(/\{MOMENT_MOOD\s*=\s*([^}]+)\}/, '').trim();
+    console.log(sentence, emojiOnly);
+    sentence = sentence
+      .replace(/\{MOMENT_MOOD\s*=\s*([^}]+)\}/, '')
+      .replace('—', '-')
+      .trim();
 
-    const emoji = sentence.match(
-      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]+/u,
+    const emojiOnly = sentence.match(
+      /^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]{1,2}$/u,
     );
-    if (emoji) {
-      await client.sendMessage(person.username, { message: emoji[0] });
-      sentence = sentence.slice(emoji[0].length).trim();
+
+    if (emojiOnly) {
+      const emoji = emojiOnly[0];
+      await sendReaction(client, person.username, emoji);
+      return;
+    }
+
+    if (sentence.replace('.', '').length === 0) {
+      console.log('Пустое сообщение, пропускаем отправку');
+      return;
     }
 
     const msg = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
@@ -102,40 +115,7 @@ async function generateMilenaReply(client, person, message) {
   await setFileData(`peoples/${person.userId}.json`, person);
 }
 
-export async function InitDialog(client, person, intent) {
-  console.log(
-    `[milenaInitiatesDialog] Инициируем сообщение для ${person.username}`,
-  );
-
-  const diff = Date.now() - person.lastMessageDate;
-  if (diff < 5 * 60 * 1000) {
-    console.log(
-      'C прошлого сообщения прошло меньше 5 минут, так что не инициируем новый диалог',
-    );
-    return;
-  }
-
-  const activity = (await getActivity(person.userId)).name;
-  person.activity = activity;
-
-  let promptMessage =
-    'Ты решила начать переписку. Напиши что-то живое и естественное — как будто реально открываешь чат, чтобы поболтать. Никаких общих фраз, только личный заход.';
-
-  const dailyDiff = Date.now() - person.lastMessageDate;
-  if (dailyDiff < 24 * 60 * 60 * 1000) {
-    promptMessage += `\nТы уже переписывалась с ${person.name} сегодня, в последний раз ${Math.floor(
-      dailyDiff / (1000 * 60 * 60),
-    )} часов назад. Так что не здоровайся, ты уже это сделала.`;
-  }
-
-  await generateMilenaReply(
-    client,
-    person,
-    `${promptMessage} Почему ты решила написать ${intent}`,
-  );
-}
-
-export async function answerToSinglePerson(client, person, message) {
+export async function answerToSinglePerson(client, person, message, filePath) {
   const lastMessage = await client.getMessages(person.username, { limit: 1 });
   if (lastMessage[0]?.out) {
     return;

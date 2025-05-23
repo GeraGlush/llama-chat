@@ -1,4 +1,5 @@
 import { getFileData } from '../../helpers.js';
+import { shuffleArray } from '../../helpers.js';
 
 export async function generateRandomSchedule() {
   const weekDay = new Date().getDay(); // 0 - Sunday, 1 - Monday, ..., 6 - Saturday
@@ -9,7 +10,7 @@ export async function generateRandomSchedule() {
   );
 
   schedule.push({
-    duration: `00-${getRandomTime(7, 8)}`,
+    duration: `00-${getRandomTime(8, 9)}`,
     hurry: 4,
     name: 'сон',
   });
@@ -18,7 +19,7 @@ export async function generateRandomSchedule() {
     schedule.push({
       duration: `${getRandomTime(9, 10)}-${getRandomTime(14, 16)}`,
       hurry: Math.floor(Math.random() * 3) + 2,
-      name: 'работаешь',
+      name: 'учишься',
     });
   }
 
@@ -121,12 +122,4 @@ function isWorkingDay(day) {
 
 function getRandomElFromAray(array) {
   return array[Math.floor(Math.random() * array.length)];
-}
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
 }

@@ -1,10 +1,19 @@
 Connecting...
-[33m[2025-05-23T01:05:53.805] [INFO] - [Running gramJS version 2.26.7][0m
-[33m[2025-05-23T01:05:53.827] [INFO] - [Connecting to 149.154.167.41:80/TCPFull...][0m
-[33m[2025-05-23T01:05:53.900] [INFO] - [Connection to 149.154.167.41:80/TCPFull complete!][0m
-[33m[2025-05-23T01:05:53.902] [INFO] - [Using LAYER 193 for initial connect][0m
-[33m[2025-05-23T01:05:53.989] [INFO] - [System clock is wrong, set time offset to 34778s][0m
+[33m[2025-05-23T12:44:28.030] [INFO] - [Running gramJS version 2.26.7][0m
+[33m[2025-05-23T12:44:28.035] [INFO] - [Connecting to 149.154.167.41:80/TCPFull...][0m
+[33m[2025-05-23T12:44:28.111] [INFO] - [Connection to 149.154.167.41:80/TCPFull complete!][0m
+[33m[2025-05-23T12:44:28.112] [INFO] - [Using LAYER 193 for initial connect][0m
 You should now be connected.
-Создан новый ассистент: asst_y0yXL4KYIgfRHIQF6WZuV72V
+Создан новый ассистент: asst_Nq7oXmyBcYu56gSpX3099Fhd
 Connecting done
 Listening for new messages from geragl...
+[33m[2025-05-23T12:45:04.386] [INFO] - [connection closed][0m
+[35m[2025-05-23T12:45:04.452] [WARN] - [Connection closed while receiving data][0m
+[33m[2025-05-23T12:45:05.459] [INFO] - [Started reconnecting][0m
+[35m[2025-05-23T12:45:05.459] [WARN] - [[Reconnect] Closing current connection...][0m
+[33m[2025-05-23T12:45:05.459] [INFO] - [Disconnecting from 149.154.167.41:80/TCPFull...][0m
+[33m[2025-05-23T12:45:05.460] [INFO] - [Connecting to 149.154.167.41:80/TCPFull...][0m
+[33m[2025-05-23T12:45:05.643] [INFO] - [Connection to 149.154.167.41:80/TCPFull complete!][0m
+[33m[2025-05-23T12:45:05.648] [INFO] - [Handling reconnect!][0m
+[33m[2025-05-23T12:45:05.735] [INFO] - [System clock is wrong, set time offset to 672s][0m
+[33m[2025-05-23T12:45:05.816] [INFO] - [System clock is wrong, set time offset to 672s][0m

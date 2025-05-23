@@ -94,23 +94,36 @@ async function isThreadEmpty(threadId) {
   return messages.data.length === 0;
 }
 
-async function addMessageToThread(role, content) {
+async function addMessageToThread(role, content, filePath) {
   if (!content) return;
 
   await ensureRunFinished(threadId);
 
   try {
-    const isEmpty = await isThreadEmpty(threadId);
+    if (filePath && fs.existsSync(filePath)) {
+      const file = await openai.files.create({
+        file: fs.createReadStream(filePath),
+        purpose: 'assistants',
+      });
+      await openai.beta.threads.messages.create(threadId, {
+        role: 'user',
+        content: [
+          {
+            type: 'image_file',
+            image_file: { file_id: file.id },
+          },
+          {
+            type: 'text',
+            text: content,
+          },
+        ],
+      });
 
-    // if (isEmpty) {
-    //   console.log('📌 Добавляю assistant prompt');
-    //   await openai.beta.threads.messages.create(threadId, {
-    //     role: 'assistant',
-    //     content: getPromt(),
-    //   });
-    // }
-
-    await openai.beta.threads.messages.create(threadId, { role, content });
+      fs.unlinkSync(filePath);
+      console.log('Файл успешно загружен:', filePath);
+    } else {
+      await openai.beta.threads.messages.create(threadId, { role, content });
+    }
   } catch (error) {
     console.error('❌ Ошибка при добавлении сообщения:', error.message);
 
@@ -126,8 +139,8 @@ async function addMessageToThread(role, content) {
   }
 }
 
-export async function generate(prompt, sendMessageFunction) {
-  await addMessageToThread('user', prompt);
+export async function generate(prompt, sendMessageFunction, filePath) {
+  await addMessageToThread('user', prompt, filePath);
   return await getFullResponse(sendMessageFunction, threadId, assistantId);
 }
 

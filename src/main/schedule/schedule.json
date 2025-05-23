@@ -1,44 +1,52 @@
 {
-  "date": "2025-05-22",
+  "date": "2025-05-23",
   "activities": [
-    { "duration": "00-07:21", "hurry": 4, "name": "сон" },
+    { "duration": "00-07:50", "hurry": 4, "name": "сон" },
     {
-      "name": "готовлюсь к экзаменам",
-      "duration": "14:51-16:51",
-      "hurry": 4,
-      "isInCity": false,
-      "condition": "isWorkingDay(weekDay)"
+      "duration": "15:08-15:38",
+      "name": "собираюсь, чтобы проводишь время с друзьями"
     },
     {
-      "name": "смотришь фильм",
-      "duration": "16:51-18:21",
-      "hurry": 0,
-      "isInCity": false
+      "name": "проводишь время с друзьями",
+      "duration": "15:38-17:38",
+      "hurry": 2,
+      "isInCity": true
     },
     {
-      "name": "покупаешь продукты",
-      "duration": "18:21-19:21",
-      "hurry": 1,
-      "isInCity": false
-    },
-    {
-      "duration": "18:57-19:27",
-      "name": "собираюсь, чтобы встречаешься с друзьями"
+      "duration": "17:38-18:23",
+      "name": "добираюсь домой с проводишь время с друзьями",
+      "hurry": 2
     },
     {
       "name": "написать смс",
       "function": "initDialog",
-      "duration": "21:35-21:44",
+      "duration": "18:23-18:29",
       "hurry": 0,
       "isInCity": false,
-      "reason": "хочу его внимания"
+      "reason": "люблю его"
     },
     {
-      "name": "встречаешься с друзьями",
-      "duration": "19:27-21:27",
-      "hurry": 2,
-      "isInCity": true
+      "name": "рисуешь или занимаешься творчеством",
+      "duration": "18:29-19:59",
+      "hurry": 0,
+      "isInCity": false
     },
-    { "duration": "22:30-00", "hurry": 4, "name": "сон" }
+    {
+      "name": "написать смс",
+      "function": "initDialog",
+      "duration": "19:59-20:05",
+      "hurry": 0,
+      "isInCity": false,
+      "reason": "рассказать что-то интересное, что случилось у меня сегодня"
+    },
+    {
+      "name": "написать смс",
+      "function": "initDialog",
+      "duration": "20:05-20:11",
+      "hurry": 0,
+      "isInCity": false,
+      "reason": "хочу его заботы"
+    },
+    { "duration": "21:50-00", "hurry": 4, "name": "сон" }
   ]
 }

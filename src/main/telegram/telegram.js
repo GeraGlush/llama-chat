@@ -33,6 +33,7 @@ export async function connect() {
 
   await client.start({
     phoneNumber: '+7(929)-202-69-49',
+    password: '!7&@sh272s1D',
     phoneCode: async () =>
       new Promise((resolve) =>
         rl.question('Please enter the code you received: ', resolve),

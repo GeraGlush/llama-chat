@@ -31,8 +31,9 @@ async function handleNewMessage(update, client, person) {
     const userId = Number(update.message.peerId.userId.value);
 
     if (update.message.media && update.message.media.document) {
+      const mime = update.message.media.document.mimeType;
       const isVoiceMessage =
-        update.message.media.document.mimeType.startsWith('audio/ogg');
+        mime.startsWith('audio/ogg') || mime === 'video/mp4';
 
       if (isVoiceMessage) {
         try {

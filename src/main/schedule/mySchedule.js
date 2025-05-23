@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { generateRandomSchedule } from './generator.js';
 import { generateRandomMood } from '../brain/mood/mood.js';
-import { InitDialog } from '../talking/answer.js';
+import { InitDialog } from '../talking/initDialog.js';
 import { getFileData, setFileData } from '../../helpers.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
