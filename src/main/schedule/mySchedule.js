@@ -1,12 +1,7 @@
-import fs from 'fs-extra';
-import path from 'path';
 import { generateRandomSchedule } from './generator.js';
 import { generateRandomMood } from '../brain/mood/mood.js';
 import { InitDialog } from '../talking/initDialog.js';
 import { getFileData, setFileData } from '../../helpers.js';
-
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-const scheduleFile = path.join(__dirname, 'schedule.json');
 
 function formatScheduleDate() {
   const today = new Date();
@@ -15,23 +10,19 @@ function formatScheduleDate() {
 
 async function ensureSchedule(userId) {
   const today = formatScheduleDate();
-  let scheduleExists = await fs.pathExists(scheduleFile);
+  let scheduleData = await getFileData('schedule');
 
-  if (scheduleExists) {
-    let scheduleData = await fs.readJson(scheduleFile).catch((err) => {
-      return;
-    });
-    if (scheduleData?.date === today) {
-      return scheduleData.activities;
-    }
+  if (scheduleData?.date === today) {
+    return scheduleData.activities;
   }
+
   const newSchedule = await generateRandomSchedule();
   const newMood = await generateRandomMood();
   const person = await await getFileData(`peoples/${userId}.json`);
   person.mood = newMood;
   await setFileData(`peoples/${userId}.json`, person);
 
-  await fs.writeJson(scheduleFile, { date: today, activities: newSchedule });
+  await setFileData(scheduleFile, { date: today, activities: newSchedule });
   return newSchedule;
 }
 async function getCurrentActivity(activities) {
