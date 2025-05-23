@@ -33,29 +33,11 @@ export async function cancelTypingStatus(client, username) {
   } catch (error) {}
 }
 
-function isEmoji(char) {
-  const code = char.codePointAt(0);
-  return (
-    (code >= 0x1f300 && code <= 0x1f6ff) || // Misc Symbols and Pictographs, Transport
-    (code >= 0x1f900 && code <= 0x1f9ff) || // Supplemental Symbols and Pictographs
-    (code >= 0x1fa70 && code <= 0x1faff) || // Symbols and Pictographs Extended-A
-    (code >= 0x2600 && code <= 0x26ff) || // Misc symbols (like ☀️, ☕)
-    (code >= 0x2700 && code <= 0x27bf) || // Dingbats
-    (code >= 0x1f000 && code <= 0x1f02f) // Mahjong, Domino, etc.
-  );
-}
-
 export async function sendReaction(client, username, emojiInput) {
   const emoji =
     typeof emojiInput === 'number'
       ? String.fromCodePoint(emojiInput)
       : emojiInput;
-
-  if (!isEmoji(emoji)) {
-    console.log(`🚫 ${emoji} не emoji — отправляем как текст`);
-    await client.sendMessage(username, { message: emoji });
-    return;
-  }
 
   const allStickers = await client.invoke(
     new Api.messages.GetAllStickers({ hash: 0 }),
