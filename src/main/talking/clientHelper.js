@@ -33,15 +33,25 @@ export async function cancelTypingStatus(client, username) {
   } catch (error) {}
 }
 
-export async function sendReaction(client, username, emojiInput) {
-  const emoji =
-    typeof emojiInput === 'number'
-      ? String.fromCodePoint(emojiInput)
-      : emojiInput;
+function isEmoji(str) {
+  // Удаляем variation selector (U+FE0F), чтобы он не ломал распознавание
+  const cleaned = str.normalize('NFC').replace(/\uFE0F/g, '');
+  // Проверка, состоит ли строка из одного emoji или двух (например, 👨‍👩‍👧‍👦)
+  return (
+    cleaned.match(/^\p{Extended_Pictographic}$/u) !== null ||
+    [...cleaned].every((char) => /\p{Emoji}/u.test(char))
+  );
+}
 
+export async function sendReaction(client, username, emoji) {
   const allStickers = await client.invoke(
     new Api.messages.GetAllStickers({ hash: 0 }),
   );
+
+  if (!isEmoji(emoji)) {
+    console.log(`🚫 '${emoji}' не emoji — пропускаем отправку`);
+    return;
+  }
 
   console.log(`Получено ${allStickers.sets.length} стикерпаков`);
 

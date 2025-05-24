@@ -121,7 +121,41 @@ export async function watchFunctions(client, person) {
     if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
       lastActivityKey = currentKey;
       const updatedPerson = await get(`peoples/${person.userId}.json`); // важно! За время ожидания мог измениться
-      await InitDialog(client, updatedPerson, activity.reason);
+      const isDialogInited = await InitDialog(
+        client,
+        updatedPerson,
+        activity.reason,
+      );
+      if (!isDialogInited) {
+        const schedule = await ensureSchedule(person.userId);
+        schedule.forEach((act) => {
+          if (
+            act.name === activity.name &&
+            act.duration === activity.duration
+          ) {
+            const addHour = (timeStr) => {
+              const [hours, minutes] = timeStr.split(':').map(Number);
+              const date = new Date();
+              date.setHours(hours + 1);
+              date.setMinutes(minutes);
+              const hh = String(date.getHours()).padStart(2, '0');
+              const mm = String(date.getMinutes()).padStart(2, '0');
+              return `${hh}:${mm}`;
+            };
+
+            const [start, end] = act.duration.split('-');
+            const newStart = addHour(start);
+            const newEnd = addHour(end);
+
+            act.duration = `${newStart}-${newEnd}`;
+          }
+        });
+
+        await set('schedule', {
+          date: formatScheduleDate(),
+          activities: schedule,
+        });
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 30000));

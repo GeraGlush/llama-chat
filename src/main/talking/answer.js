@@ -14,7 +14,6 @@ export async function generateMilenaReply(client, person, message) {
   let fullMessage = '';
   await readMessages(client, person.username);
   await setTypingStatus(client, person.username);
-
   const sendMessageFunction = async (sentence) => {
     fullMessage += sentence;
 
@@ -23,32 +22,21 @@ export async function generateMilenaReply(client, person, message) {
       .replace('—', '-')
       .trim();
 
-    // Проверка на одиночный emoji с точкой/воскл./пробелом
-    const emojiOnly = sentence.match(/^\p{Emoji}(?:[.! ]?)$/u);
-
+    // Случай: только один emoji с . / ! / пробелом — отправить как стикер
+    const emojiOnly = sentence
+      .trim()
+      .replace(/[.! ]/, '')
+      .match(/^[\p{Emoji}\p{Emoji_Component}\p{Extended_Pictographic}]{1,2}$/u);
     if (emojiOnly) {
-      const emoji = emojiOnly[0].trim().replace(/[.! ]/, '');
+      const emoji = emojiOnly[0];
       await sendReaction(client, person.username, emoji);
       return;
     }
 
-    // Проверка на emoji в начале строки + текст
+    // Случай: emoji в начале + текст → НЕ отправлять стикер, только текст
     const emojiWithText = sentence.match(/^(\p{Emoji})[.! ]+(.+)/u);
-
     if (emojiWithText) {
-      const emoji = emojiWithText[1];
-      const restText = emojiWithText[2].trim();
-
-      // Сначала отправляем стикер
-      await sendReaction(client, person.username, emoji);
-
-      // Затем — текст
-      if (restText.length > 0) {
-        await client.sendMessage(person.username, { message: restText });
-      }
-
-      await cancelTypingStatus(client, person.username);
-      return;
+      sentence = emojiWithText[2].trim(); // просто убираем emoji и продолжаем
     }
 
     // Пустое или только точка — игнор
@@ -57,7 +45,7 @@ export async function generateMilenaReply(client, person, message) {
       return;
     }
 
-    // Отправка обычного текста
+    // Отправка текста
     const msg = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
     if (msg.length > 0) {
       await client.sendMessage(person.username, { message: msg });
@@ -68,7 +56,7 @@ export async function generateMilenaReply(client, person, message) {
 
   const moodMomentPromt =
     'Если сообщение вызывает у тебя телесную или эмоциональную реакцию — в конце ответа на новой строке напиши {MOMENT_MOOD=...}.';
-  let promt = moodMomentPromt;
+  let promt = '';
 
   const lastState = person.lastState || {};
   const moodChanged = person.mood?.description !== lastState.moodDescription;
@@ -81,22 +69,24 @@ export async function generateMilenaReply(client, person, message) {
   if (stateChanged)
     if (moodChanged && person.mood?.description)
       promt += person.mood.description;
-  if (momentChanged && person.mood?.moment)
-    promt += `Ты чувствуешь: ${person.mood.moment}`;
+  // if (momentChanged && person.mood?.moment)
+  //   promt += `Ты чувствуешь: ${person.mood.moment}`;
   if (activityChanged && person.activity?.description)
     promt += person.activity.description;
 
-  promt = `[${promt}]`;
+  if (promt.length > 0) {
+    promt = `[${promt}]\n${person.name}: ${message}`;
+  } else {
+    promt = message;
+  }
 
   person.lastState = {
     moodDescription: person.mood.description,
-    moment: person.mood.moment,
+    // moment: person.mood.moment,
     activityDescription: person.activity.description,
   };
 
-  console.log(promt);
-
-  await generate(`${promt}\n${person.name}: ${message}`, sendMessageFunction);
+  await generate(promt, sendMessageFunction);
 
   const momentMoodMatch = fullMessage.match(/\{MOMENT_MOOD=(.*?)\}/);
   const momentMood = momentMoodMatch ? momentMoodMatch[1].trim() : null;

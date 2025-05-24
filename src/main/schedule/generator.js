@@ -19,7 +19,7 @@ export async function generateRandomSchedule() {
     schedule.push({
       duration: `${getRandomTime(9, 10)}-${getRandomTime(14, 16)}`,
       hurry: Math.floor(Math.random() * 3) + 2,
-      name: 'учишься',
+      name: 'сидишь на парах в университете',
     });
   }
 

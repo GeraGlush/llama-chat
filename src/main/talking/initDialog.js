@@ -11,7 +11,7 @@ export async function InitDialog(client, person, intent) {
     console.log(
       'C прошлого сообщения прошло меньше 5 минут, так что не инициируем новый диалог',
     );
-    return;
+    return false;
   }
 
   const activity = await getActivity(person.userId);
@@ -32,4 +32,5 @@ export async function InitDialog(client, person, intent) {
     person,
     `${promptMessage} Почему ты решила написать ${intent}`,
   );
+  return true;
 }
