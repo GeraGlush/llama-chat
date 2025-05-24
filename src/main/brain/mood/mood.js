@@ -1,12 +1,12 @@
-import { getFileData, setFileData } from '../../../helpers.js';
+import { get, getFileData } from '../../../helpers.js';
 import { emotions } from './emotions.js';
 
-const descriptions = await await getFileData(
+const descriptions = await getFileData(
   '/src/main/brain/mood/descriptions.json',
 );
 
 export async function getMood(userId) {
-  const data = await await getFileData(`peoples/${userId}.json`);
+  const data = await get(`peoples/${userId}.json`);
   return data.mood.emotions;
 }
 

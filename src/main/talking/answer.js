@@ -1,4 +1,4 @@
-import { getFileData, setFileData } from '../../helpers.js';
+import { get, set } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
 import {
@@ -131,7 +131,7 @@ export async function generateMilenaReply(client, person, message) {
   }
 
   person.lastMessageDate = Date.now();
-  await setFileData(`peoples/${person.userId}.json`, person);
+  await set(`peoples/${person.userId}.json`, person);
 }
 
 export async function answerToSinglePerson(client, person, message, filePath) {

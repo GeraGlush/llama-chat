@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { getPromt } from './promt/promtCreator.js';
-import { getFileData, setFileData } from '../../helpers.js';
+import { get, set } from '../../helpers.js';
 import dotenv from 'dotenv';
 dotenv.config();
 const openai = new OpenAI({
@@ -11,7 +11,7 @@ let assistantId;
 let threadId;
 
 export async function init() {
-  const data = await getFileData('settings');
+  const data = await get('settings');
   assistantId = data.assistantId;
   threadId = data.threadId;
 
@@ -27,7 +27,7 @@ export async function init() {
     await ensureRunFinished(threadId);
   }
 
-  await setFileData('settings', data);
+  await set('settings', data);
 }
 
 // Проверяем активный `run`, если завис – создаем новый `thread`
@@ -57,7 +57,7 @@ async function ensureRunFinished(threadId) {
 
       console.log(`⚠️ Run завис. Создаю новый поток...`);
       threadId = await createThread();
-      await setFileData('src/main/brain/settings.json', {
+      await set('src/main/brain/settings.json', {
         assistantId,
         threadId,
       });
@@ -129,7 +129,7 @@ async function addMessageToThread(role, content, filePath) {
 
     // Поток сбрасываем и пробуем снова
     threadId = await createThread();
-    await setFileData('src/main/brain/settings.json', {
+    await set('src/main/brain/settings.json', {
       assistantId,
       threadId,
     });

@@ -1,7 +1,7 @@
 import { generateRandomSchedule } from './generator.js';
 import { generateRandomMood } from '../brain/mood/mood.js';
 import { InitDialog } from '../talking/initDialog.js';
-import { getFileData, setFileData } from '../../helpers.js';
+import { get, set } from '../../helpers.js';
 
 function formatScheduleDate() {
   const today = new Date();
@@ -10,7 +10,7 @@ function formatScheduleDate() {
 
 async function ensureSchedule(userId) {
   const today = formatScheduleDate();
-  let scheduleData = await getFileData('schedule');
+  let scheduleData = await get('schedule');
 
   if (scheduleData?.date === today) {
     return scheduleData.activities;
@@ -18,11 +18,11 @@ async function ensureSchedule(userId) {
 
   const newSchedule = await generateRandomSchedule();
   const newMood = await generateRandomMood();
-  const person = await await getFileData(`peoples/${userId}.json`);
+  const person = await get(`peoples/${userId}.json`);
   person.mood = newMood;
-  await setFileData(`peoples/${userId}.json`, person);
+  await set(`peoples/${userId}.json`, person);
 
-  await setFileData(scheduleFile, { date: today, activities: newSchedule });
+  await set('schedule', { date: today, activities: newSchedule });
   return newSchedule;
 }
 async function getCurrentActivity(activities) {
@@ -120,9 +120,7 @@ export async function watchFunctions(client, person) {
 
     if (activity.function === 'initDialog' && currentKey !== lastActivityKey) {
       lastActivityKey = currentKey;
-      const updatedPerson = await await getFileData(
-        `peoples/${person.userId}.json`,
-      ); // важно! За время ожидания мог измениться
+      const updatedPerson = await get(`peoples/${person.userId}.json`); // важно! За время ожидания мог измениться
       await InitDialog(client, updatedPerson, activity.reason);
     }
 

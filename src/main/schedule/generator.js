@@ -6,7 +6,7 @@ export async function generateRandomSchedule() {
   const schedule = [];
 
   const activities = shuffleArray(
-    await await getFileData('/src/main/schedule/activities.json'),
+    await getFileData('/src/main/schedule/activities.json'),
   );
 
   schedule.push({

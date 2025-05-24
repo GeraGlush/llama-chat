@@ -1,4 +1,4 @@
-import { setFileData } from '../../helpers.js';
+import { set } from '../../helpers.js';
 import { NewMessage } from 'telegram/events/index.js';
 import { answerToSinglePerson } from './answer.js';
 import { Api } from 'telegram';
@@ -124,6 +124,6 @@ async function fetchLatestMessages(client, person) {
 
     const userId = messages[0].peerId.userId.value;
     await answerToSinglePerson(client, person, combinedText);
-    await setFileData(`peoples/${Number(userId)}.json`, person);
+    await set(`peoples/${Number(userId)}.json`, person);
   }
 }

@@ -1,7 +1,7 @@
 import { getFileData } from '../../../helpers.js';
 
 export async function relationshipPlus(emotions, relationshipWithPeople) {
-  const relationships = await await getFileData(
+  const relationships = await getFileData(
     '/src/main/brain/relationship/descriptions.json',
   );
 
@@ -35,11 +35,11 @@ export async function relationshipPlus(emotions, relationshipWithPeople) {
 }
 
 export async function getRelationship(userId) {
-  const relationships = await await getFileData(
+  const relationships = await getFileData(
     '/src/main/brain/relationship/descriptions.json',
   );
 
-  const userRelationship = await await getFileData(`peoples/${userId}.json`);
+  const userRelationship = await getFileData(`peoples/${userId}.json`);
   return relationships.steps[userRelationship.step];
 }
 

@@ -23,10 +23,24 @@ const getKeyFromPath = (path) => {
   return rawKey;
 };
 
-export async function getFileData(key) {
+import fs from 'fs';
+import path from 'path';
+
+const __dirname = path.resolve();
+
+export function getFileData(storageName) {
+  const mainDataStoragePath = storageName.includes('/Users/')
+    ? storageName
+    : path.join(__dirname, storageName);
+  const readData = fs.readFileSync(mainDataStoragePath, 'utf8');
+  const jsonData = JSON.parse(readData);
+  return jsonData;
+}
+
+export async function get(key) {
   const value = await cache.get(getKeyFromPath(key));
   if (value) {
-    return JSON.parse(value);
+    return JSON.parse(value) || value;
   }
   return null;
 }
@@ -36,7 +50,7 @@ export async function getKeys(path) {
   return keys;
 }
 
-export async function setFileData(key, data) {
+export async function set(key, data) {
   const value = JSON.stringify(data);
   await cache.set(getKeyFromPath(key), value);
 }
