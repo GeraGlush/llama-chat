@@ -2,6 +2,10 @@ import OpenAI from 'openai';
 import { getPromt } from './promt/promtCreator.js';
 import { get, set } from '../../helpers.js';
 import dotenv from 'dotenv';
+
+import fs from 'fs';
+import path from 'path';
+
 dotenv.config();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,10 +14,12 @@ const openai = new OpenAI({
 let assistantId;
 let threadId;
 
+const activeRuns = new Map();
+
 export async function init() {
-  const data = await get('settings');
-  assistantId = data.assistantId;
-  threadId = data.threadId;
+  const data = (await get('settings')) || {};
+  assistantId = data?.assistantId;
+  threadId = data?.threadId;
 
   if (!assistantId) {
     assistantId = await createAssistant();
@@ -28,6 +34,8 @@ export async function init() {
   }
 
   await set('settings', data);
+
+  fs.appendFileSync('dialog.txt', await getThreadMessages(), 'utf8');
 }
 
 // Проверяем активный `run`, если завис – создаем новый `thread`
@@ -57,7 +65,7 @@ async function ensureRunFinished(threadId) {
 
       console.log(`⚠️ Run завис. Создаю новый поток...`);
       threadId = await createThread();
-      await set('src/main/brain/settings.json', {
+      await set('settings', {
         assistantId,
         threadId,
       });
@@ -87,64 +95,100 @@ async function createThread() {
   return thread.id;
 }
 
-// Добавляем сообщение, но сначала проверяем активные `run`
-// Проверка, пустой ли поток
-async function isThreadEmpty(threadId) {
-  const messages = await openai.beta.threads.messages.list(threadId);
-  return messages.data.length === 0;
-}
 
-async function addMessageToThread(role, content, filePath) {
+async function addMessageToThread(role, content, userId = null) {
   if (!content) return;
 
   await ensureRunFinished(threadId);
 
   try {
-    if (filePath && fs.existsSync(filePath)) {
-      const file = await openai.files.create({
-        file: fs.createReadStream(filePath),
-        purpose: 'assistants',
-      });
-      await openai.beta.threads.messages.create(threadId, {
-        role: 'user',
-        content: [
-          {
+    const userDir = userId ? path.join('files', 'users', String(userId)) : null;
+    const attachments = [];    
+
+    if (userDir && fs.existsSync(userDir) && userId) {
+      const files = fs.readdirSync(userDir);
+      const supportedImageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+      const supportedFileExts = ['.pdf'];
+      const supportedUploadExts = [...supportedImageExts, ...supportedFileExts];
+
+      for (const fileName of files) {
+        const filePath = path.join(userDir, fileName);
+        const ext = path.extname(fileName).toLowerCase();
+
+        if (!supportedUploadExts.includes(ext)) {
+          console.log(`⏭ Пропущен неподдерживаемый файл: ${fileName}`);
+          continue;
+        }
+
+        const file = await openai.files.create({
+          file: fs.createReadStream(filePath),
+          purpose: 'assistants',
+        });
+
+        if (supportedImageExts.includes(ext)) {
+          attachments.push({
             type: 'image_file',
             image_file: { file_id: file.id },
-          },
-          {
-            type: 'text',
-            text: content,
-          },
-        ],
-      });
+          });
+        } else if (supportedFileExts.includes(ext)) {
+          attachments.push({
+            type: 'file',
+            file: { file_id: file.id },
+          });
+        }
 
-      fs.unlinkSync(filePath);
-      console.log('Файл успешно загружен:', filePath);
-    } else {
-      await openai.beta.threads.messages.create(threadId, { role, content });
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log('✅ Загружен и удалён файл:', fileName);
+        }
+      }
+
     }
+
+    if (content) {
+      attachments.push({ type: 'text', text: content });
+    }
+
+    if (attachments.length > 0) {
+      await openai.beta.threads.messages.create(threadId, {
+        role,
+        content: attachments,
+      });
+    }
+
   } catch (error) {
     console.error('❌ Ошибка при добавлении сообщения:', error.message);
 
-    // Поток сбрасываем и пробуем снова
+    // Пересоздать поток и попробовать снова
     threadId = await createThread();
-    await set('src/main/brain/settings.json', {
+    await set('settings', {
       assistantId,
       threadId,
     });
 
-    // Повторяем с новым потоком
-    await addMessageToThread(role, content);
+    await addMessageToThread(role, content, userId);
   }
 }
 
-export async function generate(prompt, sendMessageFunction, filePath) {
-  await addMessageToThread('user', prompt, filePath);
-  return await getFullResponse(sendMessageFunction, threadId, assistantId);
+export async function generate(prompt, sendMessageFunction, userId) {
+  while (activeRuns.has(threadId)) {
+    console.log(
+      `⏳ Ожидание завершения предыдущего процесса в треде ${threadId}`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  await addMessageToThread('user', prompt, userId);
+  const answer = await getFullResponse(
+    sendMessageFunction,
+    threadId,
+    assistantId,
+  );
+  activeRuns.delete(threadId);
+  return answer;
 }
 
 async function getFullResponse(sendMessageFunction, threadId, assistantId) {
+  activeRuns.set(threadId, true);
   return new Promise((resolve, reject) => {
     let buffer = '';
     let fullAnswer = '';
@@ -220,4 +264,26 @@ async function getFullResponse(sendMessageFunction, threadId, assistantId) {
         reject(err);
       });
   });
+}
+
+export async function getThreadMessages() {
+  try {
+    const messages = await openai.beta.threads.messages.list(threadId);
+
+    const sorted = messages.data.sort(
+      (a, b) => new Date(a.created_at * 1000) - new Date(b.created_at * 1000),
+    );
+
+    const formatted = sorted
+      .map((msg) => {
+        const role = msg.role === 'assistant' ? 'я' : 'он';
+        const text = msg.content[0]?.text?.value?.trim() || '';
+        return `${role}: ${text}`;
+      })
+      .join('\n');
+
+    return formatted;
+  } catch (error) {
+    console.error('Ошибка при получении сообщений из треда:', error);
+  }
 }

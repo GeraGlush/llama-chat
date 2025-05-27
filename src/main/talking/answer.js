@@ -1,4 +1,4 @@
-import { get, set } from '../../helpers.js';
+import { set, cache } from '../../helpers.js';
 import { generate } from '../brain/gpt_brain.js';
 import { getActivity, waitForActivityDone } from '../schedule/mySchedule.js';
 import {
@@ -8,12 +8,11 @@ import {
   readMessages,
 } from './clientHelper.js';
 
-const pendingGenerations = new Map();
-
 export async function generateMilenaReply(client, person, message) {
   let fullMessage = '';
   await readMessages(client, person.username);
   await setTypingStatus(client, person.username);
+
   const sendMessageFunction = async (sentence) => {
     fullMessage += sentence;
 
@@ -22,7 +21,6 @@ export async function generateMilenaReply(client, person, message) {
       .replace('—', '-')
       .trim();
 
-    // Случай: только один emoji с . / ! / пробелом — отправить как стикер
     const emojiOnly = sentence
       .trim()
       .replace(/[.! ]/, '')
@@ -33,19 +31,16 @@ export async function generateMilenaReply(client, person, message) {
       return;
     }
 
-    // Случай: emoji в начале + текст → НЕ отправлять стикер, только текст
     const emojiWithText = sentence.match(/^(\p{Emoji})[.! ]+(.+)/u);
     if (emojiWithText) {
-      sentence = emojiWithText[2].trim(); // просто убираем emoji и продолжаем
+      sentence = emojiWithText[2].trim();
     }
 
-    // Пустое или только точка — игнор
     if (sentence.replace('.', '').length === 0) {
       console.log('Пустое сообщение, пропускаем отправку');
       return;
     }
 
-    // Отправка текста
     const msg = sentence.endsWith('.') ? sentence.slice(0, -1) : sentence;
     if (msg.length > 0) {
       await client.sendMessage(person.username, { message: msg });
@@ -53,127 +48,69 @@ export async function generateMilenaReply(client, person, message) {
 
     await cancelTypingStatus(client, person.username);
   };
+  const lastState = person.lastState || {};
 
-  const moodMomentPromt =
-    'Если сообщение вызывает у тебя телесную или эмоциональную реакцию — в конце ответа на новой строке напиши {MOMENT_MOOD=...}.';
+  const newActivity = await getActivity(person.userId);
+
   let promt = '';
 
-  const lastState = person.lastState || {};
-  const moodChanged = person.mood?.description !== lastState.moodDescription;
-  const momentChanged = person.mood?.moment !== lastState.moment;
-  const activityChanged =
-    person.activity?.description !== lastState.activityDescription;
-
-  const stateChanged = moodChanged || momentChanged || activityChanged;
-
-  if (stateChanged)
-    if (moodChanged && person.mood?.description)
-      promt += person.mood.description;
-  // if (momentChanged && person.mood?.moment)
-  //   promt += `Ты чувствуешь: ${person.mood.moment}`;
-  if (activityChanged && person.activity?.description)
-    promt += person.activity.description;
-
-  if (promt.length > 0) {
-    promt = `[${promt}]\n${person.name}: ${message}`;
+  if (
+    !lastState.activityDescription ||
+    (newActivity.name !== person.activity.name && person.activity?.description)
+  ) {
+    promt = `[Ты была занята: ${person.activity.name}, и только что освободилась]\n${message}`;
+    console.log(promt);
   } else {
     promt = message;
   }
 
   person.lastState = {
     moodDescription: person.mood.description,
-    // moment: person.mood.moment,
+    moment: person.mood.moment,
     activityDescription: person.activity.description,
   };
 
-  await generate(promt, sendMessageFunction);
-
-  const momentMoodMatch = fullMessage.match(/\{MOMENT_MOOD=(.*?)\}/);
-  const momentMood = momentMoodMatch ? momentMoodMatch[1].trim() : null;
-
-  if (momentMood) {
-    console.log('MOMENT_MOOD =', momentMood);
-    person.mood.moment = momentMood;
-
-    // Если позитивные эмоции — ставим реакцию
-    const isPositive =
-      /рад|подмигив|восторг|счаст|класс|мил|удовольств|улыб|люб|тепло/i.test(
-        momentMood,
-      );
-    if (isPositive) {
-      const messages = (
-        await client.getMessages(person.username, { limit: 10 })
-      ).reverse();
-      let lastUserMessageId = null;
-
-      // Перебираем сообщения, чтобы найти последнее сообщение от пользователя
-      for (let i = 0; i < messages.length; i++) {
-        // Проверяем, что сообщение от пользователя и не от нас
-        if (!messages[i].out) {
-          lastUserMessageId = messages[i].id; // Сохраняем ID последнего сообщения от пользователя
-        }
-      }
-
-      if (lastUserMessageId) {
-        await sendReaction(client, person.username, lastUserMessageId, '❤️');
-      }
-    }
-  }
+  await generate(promt, sendMessageFunction, person.userId);
 
   person.lastMessageDate = Date.now();
   await set(`peoples/${person.userId}.json`, person);
 }
 
-export async function answerToSinglePerson(client, person, message, filePath) {
-  const lastMessage = await client.getMessages(person.username, { limit: 1 });
-  if (lastMessage[0]?.out) {
-    return;
-  }
+const pendingMessages = new Map();
 
-  if (pendingGenerations.has(person.userId)) {
+export async function answerToSinglePerson(client, person, _incomingMessage) {
+  if (pendingMessages.has(person.userId)) {
     console.log(
-      `[answerToSinglePerson] Добавлено в очередь для ${person.username}`,
+      `[answerToSinglePerson] Пропускаем ответ для ${person.username}, так как уже есть в очереди`,
     );
-    const pending = pendingGenerations.get(person.userId);
-    pending.messages.push(message);
-
-    // Перезапускаем таймер
-    clearTimeout(pending.timer);
-    pending.timer = setTimeout(async () => {
-      await flushPendingMessages(client, person);
-    }, 3000);
-
+    pendingMessages.set(
+      person.userId,
+      pendingMessages.get(person.userId) + '\n' + _incomingMessage,
+    );
     return;
+  } else {
+    pendingMessages.set(person.userId, _incomingMessage);
+    console.log(
+      '[answerToSinglePerson] Создаем очередь ответ для',
+      person.username,
+    );
   }
-
-  console.log(
-    `[answerToSinglePerson] Начинаем новую очередь для ${person.username}`,
-  );
-
-  const timer = setTimeout(async () => {
-    await flushPendingMessages(client, person);
-  }, 3000);
-
-  pendingGenerations.set(person.userId, {
-    messages: [message],
-    timer,
-  });
-}
-
-async function flushPendingMessages(client, person) {
-  const pending = pendingGenerations.get(person.userId);
-  if (!pending) return;
-
-  pendingGenerations.delete(person.userId);
-
-  const combinedMessage = pending.messages.join('. ');
 
   const activity = await getActivity(person.userId);
   person.activity = activity;
 
   if (activity.hurry > 0) {
-    await waitForActivityDone(activity.hurry);
+    console.log(
+      `[answerToSinglePerson] Ждём активность (${activity.description}) для ${person.username}`,
+    );
   }
+  await waitForActivityDone(activity.hurry);
 
-  await generateMilenaReply(client, person, combinedMessage);
+
+  const messages = pendingMessages.get(person.userId);
+  pendingMessages.delete(person.userId);
+  await generateMilenaReply(client, person, messages);
+
+  person.lastMessageDate = Date.now();
+  await set(`peoples/${person.userId}.json`, person);
 }

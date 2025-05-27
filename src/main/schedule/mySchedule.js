@@ -2,6 +2,7 @@ import { generateRandomSchedule } from './generator.js';
 import { generateRandomMood } from '../brain/mood/mood.js';
 import { InitDialog } from '../talking/initDialog.js';
 import { get, set } from '../../helpers.js';
+import { init as initBrain } from '../brain/gpt_brain.js';
 
 function formatScheduleDate() {
   const today = new Date();
@@ -17,14 +18,17 @@ async function ensureSchedule(userId) {
   }
 
   const newSchedule = await generateRandomSchedule();
-  const newMood = await generateRandomMood();
-  const person = await get(`peoples/${userId}.json`);
-  person.mood = newMood;
-  await set(`peoples/${userId}.json`, person);
+  // const newMood = await generateRandomMood();
+  // const person = await get(`peoples/${userId}.json`);
+  // person.mood = newMood;
+
+  await initBrain();
+  // await set(`peoples/${userId}.json`, person);
 
   await set('schedule', { date: today, activities: newSchedule });
   return newSchedule;
 }
+
 async function getCurrentActivity(activities) {
   const warsawTime = new Date().toLocaleTimeString('ru-RU', {
     timeZone: 'Europe/Moscow',
@@ -50,6 +54,7 @@ async function getCurrentActivity(activities) {
 export async function getActivity(userId) {
   const activities = await ensureSchedule(userId);
   const activity = await getCurrentActivity(activities);
+  if (!activity.hurry) activity.hurry = [0]; // если нет hurry, то считаем, что 0
 
   const description = getActivityDescription(activity);
   return { ...activity, description };
@@ -60,11 +65,13 @@ let waitTime = 0;
 export async function waitForActivityDone(hurry) {
   const waitTimeForActivity = {
     // in minutes
+    0: [0.0167, 0.0167],  // 1 сек, чтобы подрузить другие смс
     1: [0, 0.5],
     2: [3, 7],
     3: [8, 20],
   };
-  let activity = await getActivity();
+  let activity = await getActivity();  
+  if (!hurry || !activity?.name) return;
 
   if (hurry === 4) {
     while (activity.hurry == 4) {
@@ -72,10 +79,6 @@ export async function waitForActivityDone(hurry) {
       console.log(`Не могу ответить, занята: ${activity.name}...`);
       await new Promise((resolve) => setTimeout(resolve, 60000));
     }
-    return;
-  }
-
-  if (hurry === 0 || !waitTimeForActivity[hurry]) {
     return;
   }
 
@@ -92,6 +95,7 @@ export async function waitForActivityDone(hurry) {
       waitTime -= 0.1;
     }
     waitTime = 0;
+    return;
   }
 }
 

@@ -1,129 +1,119 @@
-import { set } from '../../helpers.js';
 import { NewMessage } from 'telegram/events/index.js';
 import { answerToSinglePerson } from './answer.js';
 import { Api } from 'telegram';
 import { watchFunctions } from '../schedule/mySchedule.js';
+import {
+  fetchLatestMessages,
+} from './clientHelper.js';
+import { transcribeAudio, saveMainShotsFromVideo } from './transcribator.js';
+import {handleCommand} from './commands.js';
+import fs from 'fs';
+import path from 'path';
 
 let talking = false;
 
-async function setup(client, person) {
-  talking = true;
-  client.addEventHandler((update) => {
-    handleNewMessage(update, client, person);
-  }, new NewMessage({}));
-
-  watchFunctions(client, person);
-  console.log(`Listening for new messages from ${person.username}...`);
-}
-
-async function handleNewMessage(update, client, person) {
-  const userId = Number(update.message.peerId.userId.value);
-
-  if (userId !== person.userId) return;
-
-  console.log('New message from', person.username);
-
-  const messageDate = new Date(update.message.date * 1000);
-  if (
-    !person.lastMessageDate ||
-    messageDate.getTime() > person.lastMessageDate
-  ) {
-    const userId = Number(update.message.peerId.userId.value);
-
-    if (update.message.media && update.message.media.document) {
-      const mime = update.message.media.document.mimeType;
-      const isVoiceMessage =
-        mime.startsWith('audio/ogg') || mime === 'video/mp4';
-
-      if (isVoiceMessage) {
-        try {
-          await client.invoke(
-            new Api.messages.ForwardMessages({
-              fromPeer: update.message.peerId,
-              id: [update.message.id],
-              toPeer: 'AudioMessBot',
-            }),
-          );
-
-          const botPeer = await client.getEntity('AudioMessBot');
-          let recognizedText = '';
-
-          for (let i = 0; i < 10; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            const history = await client.invoke(
-              new Api.messages.GetHistory({
-                peer: botPeer,
-                limit: 1,
-              }),
-            );
-
-            const lastMessage = history.messages[0];
-            if (
-              lastMessage &&
-              lastMessage.message &&
-              !lastMessage.message.includes(' Распознаю голос')
-            ) {
-              recognizedText = lastMessage.message.replace('🗣 ', '');
-              break;
-            }
-          }
-
-          if (recognizedText) {
-            await answerToSinglePerson(client, person, recognizedText);
-          }
-        } catch (error) {
-          console.error('Voice message error:', error);
-        }
-        return;
-      }
-    }
-
-    const text = update.message.message;
-    await answerToSinglePerson(client, person, text);
-  }
-}
-
 export async function startTalkingToPerson(client, person) {
-  if (!client) return console.error('No client provided to', person.username);
+  const setup = async (client, person) => {
+    talking = true;
+    client.addEventHandler((update) => {
+      handleNewMessage(update, client, person);
+    }, new NewMessage({}));
 
-  await fetchLatestMessages(client, person);
+    watchFunctions(client, person);
+    console.log(`Listening for new messages from ${person.username}...`);
+  };
+
+  const newMessages = await fetchLatestMessages(client, person);
+  console.log(`Found ${newMessages.length} new messages from ${person.username}.`);
+
+  for (const message of newMessages) {
+    await handleNewMessage({ message }, client, person);
+  }
+
   if (!talking) await setup(client, person);
 }
 
-async function fetchLatestMessages(client, person) {
-  const messages = await client.getMessages(person.username, {
-    limit: 20,
-  });
+async function handleNewMessage(update, client, person) {
+  if (!update.message?.peerId?.userId?.value) return;
 
-  const lastMessageDate = person.lastMessageDate
-    ? new Date(person.lastMessageDate)
-    : new Date(Date.now() - 12 * 60 * 60 * 1000);
+  const userId = Number(update.message.peerId.userId.value);
+  if (userId !== person.userId) return;
 
-  const filteredMessages = messages.filter((msg) => {
-    const messageDate = new Date(msg.date * 1000).getTime();
-    return messageDate > lastMessageDate.getTime();
-  });
+  const messageDate = new Date(update.message.date * 1000);
+  if (person.lastMessageDate && messageDate.getTime() <= person.lastMessageDate) return;
 
-  const newMessages = [];
+  const media = update.message.media;
+  const isDocument = media instanceof Api.MessageMediaDocument;
+  const document = isDocument ? media.document : null;
 
-  for (const msg of filteredMessages) {
-    if (msg.out) break;
-    if (msg.text) {
-      newMessages.push({
-        text: msg.text,
-        date: new Date(msg.date * 1000),
-      });
-    }
+  const textFromVoice = await transcribeAudio(client, update, userId);
+  let text = update.message?.message?.trim() || '' || textFromVoice || '';
+  if (update.message?.message && update.message?.message.startsWith('/')) {
+    await handleCommand(client, person, update.message.message);
+    return;
   }
 
-  newMessages.reverse();
+  const userDir = path.join('files', 'users', String(userId));
+  fs.mkdirSync(userDir, { recursive: true });
 
-  if (newMessages.length > 0) {
-    console.log('New unreaded from', person.username);
-    const combinedText = newMessages.map((msg) => msg.text).join('. ');
+  // === Обработка видео (например, кружки) ===
+  const isVideo = isDocument && document?.attributes?.some(attr =>
+    attr instanceof Api.DocumentAttributeVideo,
+  );
 
-    const userId = messages[0].peerId.userId.value;
-    await answerToSinglePerson(client, person, combinedText);
-    await set(`peoples/${Number(userId)}.json`, person);
+  if (isVideo) {    
+    const userDir = path.join('files', 'users', String(userId));
+    const videoPath = path.join(userDir,'video.mp4');
+    const buffer = await client.downloadMedia(media);
+    fs.writeFileSync(videoPath, buffer);
+
+    await saveMainShotsFromVideo(userId, userDir, videoPath);
+    fs.unlinkSync(videoPath); // удалить исходник
+
+    text ||= await transcribeAudio(client, update, userId);
+    console.log(`Кружок от ${person.username} распознан: ${text}`);
+    
+
+    await answerToSinglePerson(client, person, `Тебе отправили кружок. Кадр из кружка загружен как файл, вот его текст: ${text}`);
+    return;
+  }
+
+    // === Обработка обычных фото ===
+  if (media instanceof Api.MessageMediaPhoto && media.photo) {
+    const fileName = `photo_${Date.now()}.jpg`;
+    const filePath = path.join(userDir, fileName);
+    const buffer = await client.downloadMedia(media);
+    fs.writeFileSync(filePath, buffer);
+
+    text ||= `[отправлено фото]`;
+    await answerToSinglePerson(client, person, text);
+    return;
+  }
+
+  // === Обработка других файлов (фото, PDF, документы и т.п.) ===
+  if (isDocument) {
+    const nameAttr = document.attributes?.find(attr => attr.fileName);
+    const fileName = nameAttr?.fileName || `file_${Date.now()}`;
+    const filePath = path.join(userDir, fileName);
+
+    const buffer = await client.downloadMedia(media);
+    fs.writeFileSync(filePath, buffer);
+
+    text ||= `[отправлен файл: ${fileName}]`;
+
+    await answerToSinglePerson(client, person, text);
+    return;
+  }
+
+  // === Обработка текста / стикеров ===
+  const stickerDescription =
+    (document?.attributes?.find(a => a instanceof Api.DocumentAttributeSticker)?.alt &&
+      `Стикер: ${document.attributes.find(a => a instanceof Api.DocumentAttributeSticker).alt}`) ||
+    '';
+
+  text ||= stickerDescription;
+
+  if (text) {
+    await answerToSinglePerson(client, person, text);
   }
 }

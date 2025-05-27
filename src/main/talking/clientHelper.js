@@ -1,6 +1,30 @@
 import { Api } from 'telegram';
 import { shuffleArray } from '../../helpers.js';
 
+export async function fetchLatestMessages(client, person) {
+  const messages = await client.getMessages(person.userId, { limit: 25 });
+
+  const lastMessageDate = person.lastMessageDate
+    ? new Date(person.lastMessageDate)
+    : new Date(Date.now() - 12 * 60 * 60 * 1000);
+
+  const filteredMessages = messages.filter((msg) => {
+    const messageDate = new Date(msg.date * 1000).getTime();
+    return messageDate > lastMessageDate.getTime();
+  });
+
+  const newMessages = [];
+
+  for (const msg of filteredMessages) {
+    if (msg.out) break;
+    msg.date = new Date(msg.date * 1000),
+    newMessages.push(msg);
+  }
+
+  newMessages.reverse();
+  return newMessages;
+}
+
 export async function setTypingStatus(client, username) {
   try {
     await client.invoke(
