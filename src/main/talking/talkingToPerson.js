@@ -6,7 +6,7 @@ import {
   fetchLatestMessages,
 } from './clientHelper.js';
 import { transcribeAudio, saveMainShotsFromVideo } from './transcribator.js';
-import {handleCommand} from './commands.js';
+import {handleCommand} from './commands.js';  
 import fs from 'fs';
 import path from 'path';
 
@@ -90,7 +90,16 @@ async function handleNewMessage(update, client, person) {
     return;
   }
 
-  // === Обработка других файлов (фото, PDF, документы и т.п.) ===
+  // === Обработка стикеров ===
+  const isSticker = isDocument && document?.attributes?.some(a => a instanceof Api.DocumentAttributeSticker);
+  if (isSticker) {
+    const stickerAlt = document.attributes.find(a => a instanceof Api.DocumentAttributeSticker)?.alt;
+    const text = `Стикер: ${stickerAlt}`;
+    await answerToSinglePerson(client, person, text);
+    return;
+  }
+
+  // === Обработка других файлов (PDF, архивы и т.п.) ===
   if (isDocument) {
     const nameAttr = document.attributes?.find(attr => attr.fileName);
     const fileName = nameAttr?.fileName || `file_${Date.now()}`;
@@ -99,11 +108,11 @@ async function handleNewMessage(update, client, person) {
     const buffer = await client.downloadMedia(media);
     fs.writeFileSync(filePath, buffer);
 
-    text ||= `[отправлен файл: ${fileName}]`;
-
+    const text = `[отправлен файл: ${fileName}]`;
     await answerToSinglePerson(client, person, text);
     return;
   }
+
 
   // === Обработка текста / стикеров ===
   const stickerDescription =

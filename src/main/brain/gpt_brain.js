@@ -107,7 +107,7 @@ async function addMessageToThread(role, content, userId = null) {
 
     if (userDir && fs.existsSync(userDir) && userId) {
       const files = fs.readdirSync(userDir);
-      const supportedImageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+      const supportedImageExts = ['.jpg', '.jpeg', '.png'];
       const supportedFileExts = ['.pdf'];
       const supportedUploadExts = [...supportedImageExts, ...supportedFileExts];
 
