@@ -16,7 +16,7 @@ async function redisClient() {
 }
 
 export const cache = await redisClient();
-const projectName = process.env.PROJECT_NAME.toLocaleLowerCase();
+const projectName = process.env.PROJECT_NAME.toLowerCase();
 
 const getKeyFromPath = (path) => {
   const parts = path.split('/');
