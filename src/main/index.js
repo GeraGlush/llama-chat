@@ -20,20 +20,16 @@ async function start() {
   await initTalking(client);
   console.log('Connecting done');
 
-  let failed = 0;
   while (process.env.MODE !== 'dev') {
     await cache.set('server_status', 'isRunning', {
       EX: 30,
     });
     await new Promise((resolve) => setTimeout(resolve, 20000));
     if (!(await cache.get('server_status'))) {
-      failed++;
-      if (failed >= 3) {
         console.error(
           'Failed to set server status after 3 attempts, exiting...',
         );
         process.exit(1);
-      }
     }
   }
 }
