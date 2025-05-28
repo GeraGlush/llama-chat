@@ -1,5 +1,6 @@
 import { cache } from '../../helpers.js';
 import fs from 'fs';
+import { init } from '../brain/gpt_brain.js';
 
 export async function handleCommand(client, person, command) {
   console.log(`Handling command: ${command} for ${person.username}`);
@@ -34,6 +35,12 @@ export async function handleCommand(client, person, command) {
     await client.sendMessage(person.username, { message });
   } else if (command.includes('/setPromt')) {
     await cache.set('promt', command.replace('/setPromt', '').trim());
+  } else if (command.includes('/reloadGpt')) {
+    await cache.del('settings');
+    await init();
+    await client.sendMessage(person.username, {
+      message: 'Reloaded',
+    });
   } else {
     console.log(`Unknown command: ${command}`);
     // Handle unknown commands
