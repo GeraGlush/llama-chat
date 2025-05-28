@@ -81,7 +81,7 @@ async function createAssistant() {
   const assistant = await openai.beta.assistants.create({
     name: 'Milena',
     model: 'gpt-4o',
-    instructions: getPromt(),
+    instructions: await getPromt(),
     temperature: 0.7,
     top_p: 0.9,
   });

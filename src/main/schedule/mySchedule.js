@@ -18,13 +18,7 @@ async function ensureSchedule(userId) {
   }
 
   const newSchedule = await generateRandomSchedule();
-  // const newMood = await generateRandomMood();
-  // const person = await get(`peoples/${userId}.json`);
-  // person.mood = newMood;
-
   await initBrain();
-  // await set(`peoples/${userId}.json`, person);
-
   await set('schedule', { date: today, activities: newSchedule });
   return newSchedule;
 }
