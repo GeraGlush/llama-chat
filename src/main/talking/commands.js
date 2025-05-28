@@ -20,18 +20,11 @@ export async function handleCommand(client, person, command) {
     await client.sendMessage(person.username, { message: '+' });
   } else if (command === '/getDialog') {
     const dialog = fs.readFileSync('dialog.txt', 'utf8');
-    const message =
-      '`Вот часть диалога ИИ, которое должно общаться как человек (Нортик) и человека. Найти места, где нортик говорит не как реальный человек' +
-      dialog +
-      '`';
+    const message = `Вот часть диалога ИИ, которое должно общаться как человек (Нортик) и человека. Найти места, где нортик говорит не как реальный человек ${dialog}`;
     await client.sendMessage(person.username, { message });
-    await client.sendMessage(person.username, { message: '+' });
   } else if (command.includes('/getPromt')) {
     const promt = await cache.get('promt');
-    const message =
-      '`Поправь промт, учти, что этот промт уже довольно хороший и не стоит его радикально переделывать. Так же добавь в промт вещи, которые Нортик должна выполнять дальше, чтобы соответсвовать тому, что говорила в диалоге. Вот промт, который был у Нортика при диалоге:' +
-      promt +
-      '`';
+    const message = `Поправь промт, учти, что этот промт уже довольно хороший и не стоит его радикально переделывать. Так же добавь в промт вещи, которые Нортик должна выполнять дальше, чтобы соответсвовать тому, что говорила в диалоге. Вот промт, который был у Нортика при диалоге:\n${promt}`;
     await client.sendMessage(person.username, { message });
   } else if (command.includes('/setPromt')) {
     await cache.set('promt', command.replace('/setPromt', '').trim());
