@@ -47,7 +47,7 @@ async function handleNewMessage(update, client, person) {
   const document = isDocument ? media.document : null;
 
   const textFromVoice = await transcribeAudio(client, update, userId);
-  let text = update.message?.message?.trim() || '' || textFromVoice || '';
+  let text = update.message?.message?.trim() || textFromVoice || '';
   if (update.message?.message && update.message?.message.startsWith('/')) {
     await handleCommand(client, person, update.message.message);
     return;
@@ -75,6 +75,11 @@ async function handleNewMessage(update, client, person) {
     
 
     await answerToSinglePerson(client, person, `Тебе отправили кружок. Кадр из кружка загружен как файл, вот его текст: ${text}`);
+    return;
+  } 
+
+  if(textFromVoice && !isVideo){
+    await answerToSinglePerson(client, person, textFromVoice);
     return;
   }
 

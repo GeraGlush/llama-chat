@@ -1,5 +1,6 @@
-import 'dotenv/config';
 import { createClient } from 'redis';
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function redisClient() {
   const cache = createClient({
@@ -15,12 +16,14 @@ async function redisClient() {
 }
 
 export const cache = await redisClient();
+const projectName = process.env.PROJECT_NAME.toLocaleLowerCase();
 
 const getKeyFromPath = (path) => {
   const parts = path.split('/');
   const rawKey = parts[parts.length - 1];
-
-  return rawKey;
+  
+  if (rawKey.startsWith(projectName)) return rawKey;
+  return `${projectName}_${rawKey}`;
 };
 
 import fs from 'fs';
@@ -40,19 +43,33 @@ export function getFileData(storageName) {
 export async function get(key) {
   const value = await cache.get(getKeyFromPath(key));
   if (value) {
-    return JSON.parse(value) || value;
+    try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }  
   }
   return null;
 }
 
 export async function getKeys(path) {
-  const keys = await cache.keys(path);
+  const keys = await cache.keys(`${projectName}_${path}`);
   return keys;
 }
 
-export async function set(key, data) {
-  const value = JSON.stringify(data);
-  await cache.set(getKeyFromPath(key), value);
+export async function del(key) {
+  const redisKey = getKeyFromPath(key);
+  const exists = await cache.exists(redisKey);
+  if (exists) {
+    await cache.del(redisKey);
+    return true;
+  }
+  return false;
+}
+
+export async function set(key, data, options = {}) {
+  const value = typeof data === 'object' ? JSON.stringify(data) : data;
+  await cache.set(getKeyFromPath(key), value, options);
 }
 
 export function shuffleArray(array) {

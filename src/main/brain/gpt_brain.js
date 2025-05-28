@@ -274,13 +274,14 @@ export async function getThreadMessages() {
       (a, b) => new Date(a.created_at * 1000) - new Date(b.created_at * 1000),
     );
 
-    const formatted = sorted
-      .map((msg) => {
-        const role = msg.role === 'assistant' ? 'я' : 'он';
-        const text = msg.content[0]?.text?.value?.trim() || '';
-        return `${role}: ${text}`;
-      })
-      .join('\n');
+  const formatted = sorted
+    .map((msg) => {
+      const role = msg.role === 'assistant' ? 'ИИ' : 'Он';
+      let text = msg.content[0]?.text?.value?.trim() || '';
+      text = text.replace(/\[.*?\]/g, ''); // удаление всего, что в []
+      return `${role}: ${text}`;
+    })
+    .join('\n');
 
     return formatted;
   } catch (error) {

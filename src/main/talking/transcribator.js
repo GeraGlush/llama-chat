@@ -66,7 +66,7 @@ export async function transcribeAudio(client, update) {
         break;
       }
     }
-
+    
     return recognizedText || null;
   } catch (err) {
     console.error('Ошибка при распознавании аудио:', err);

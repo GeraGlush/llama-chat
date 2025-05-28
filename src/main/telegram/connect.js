@@ -1,8 +1,10 @@
 import { StringSession } from 'telegram/sessions/index.js';
 import { Api, TelegramClient } from 'telegram';
 import readline from 'readline';
-import path from 'path';
-import fs from 'fs';
+import { get, set } from '../../helpers.js';
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -11,41 +13,41 @@ const rl = readline.createInterface({
 
 export async function connect() {
   console.log('Connecting...');
-  const __dirname = path.resolve();
-  const pathToAccountData = path.join(
-    __dirname,
-    'src/main/telegram/accout.json',
-  );
-  const accoutData = JSON.parse(fs.readFileSync(pathToAccountData));
+  const accoutData = (await get('telegram_account_data')) || {};
 
-  const session = accoutData.save
-    ? new StringSession(accoutData.save)
+  const session = accoutData
+    ? new StringSession(accoutData)
     : new StringSession('');
 
   const client = new TelegramClient(
     session,
-    29888951,
-    'c2315bdaa91a43b557f38363853ecca3',
+    Number(process.env.TELEGRAM_API_ID),
+    process.env.TELEGRAM_API_HASH,
     {
       connectionRetries: 5,
-    },
+    }
   );
 
   await client.start({
-    phoneNumber: '+7(929)-202-69-49',
-    password: '!7&@sh272s1D',
+    phoneNumber: process.env.TELEGRAM_PHONE_NUMBER,
+    password: process.env.TELEGRAM_PASSWORD,
     phoneCode: async () =>
       new Promise((resolve) =>
-        rl.question('Please enter the code you received: ', resolve),
+        rl.question('Please enter the code you received: ', resolve)
       ),
     onError: (err) => console.log(err),
   });
   console.log('You should now be connected.');
 
-  fs.writeFileSync(pathToAccountData, JSON.stringify({ save: session.save() }));
+  await set('telegram_account_data', client.session.save());
   return client;
 }
 
 export async function sendMessage(client, username, message) {
+  if (!username || !message || message.trim() === '') {
+    console.error('Username and message are required to send a message.');
+    return;
+  }
+
   await client.sendMessage(username, { message });
 }

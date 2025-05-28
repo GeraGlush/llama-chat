@@ -2,7 +2,7 @@
   {
     "name": "написать смс",
     "function": "initDialog",
-    "probability": 80,
+    "probability": 90,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -245,7 +245,7 @@
   {
     "name": "написать смс",
     "function": "initDialog",
-    "probability": 30,
+    "probability": 80,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
@@ -272,7 +272,7 @@
   {
     "name": "написать смс",
     "function": "initDialog",
-    "probability": 40,
+    "probability": 60,
     "duration": 0.1,
     "hurry": [0],
     "isInCity": false,
