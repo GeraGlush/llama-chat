@@ -7,6 +7,7 @@ import {
   setTypingStatus,
   readMessages,
 } from './clientHelper.js';
+import { InitDialog } from './initDialog.js';
 
 export async function generateMilenaReply(client, person, message) {
   let fullMessage = '';
@@ -54,9 +55,11 @@ export async function generateMilenaReply(client, person, message) {
 
   let promt = '';
 
+  console.log(newActivity.name, person.activity.name);
+  
+
   if (
-    !lastState.activityDescription ||
-    (newActivity.name !== person.activity.name && person.activity?.description)
+    (newActivity.name !== person.activity.name)
   ) {
     promt = `[Ты была занята: ${person.activity.name}, и только что освободилась]\n${message}`;
     console.log(promt);
@@ -112,5 +115,45 @@ export async function answerToSinglePerson(client, person, _incomingMessage) {
   await generateMilenaReply(client, person, messages);
 
   person.lastMessageDate = Date.now();
+  await randomContinueDialog(client, person);
   await set(`peoples/${person.userId}.json`, person);
+}
+
+
+async function randomContinueDialog(client, person) {
+  const random = Math.floor(Math.random() * 10);
+  
+  if (random < 8) return;
+  const randomDelay = Math.floor(
+    Math.random() * (120 - 5 + 1) + 5,
+  );
+
+  await new Promise((resolve) =>
+    setTimeout(resolve, randomDelay * 1000),
+  );
+
+  if (pendingMessages.has(person.userId)) {
+    console.log('[randomContinueDialog] Уже общаемся с', person.username, 'не начинаем новый диалог');
+    return;
+  }
+
+await waitForActivityDone(person.activity.hurry);
+const reasons = [
+  'продолжить разговор', // не ошибка. Нужно, чтобы была вероятность больше, что будет продолжение разговора
+  'продолжить разговор',
+  'продолжить разговор',
+  'продолжить разговор',
+  'продолжить разговор',
+  'продолжить разговор',
+  'поговорить о чем-то',
+  'сказать, что я к нему чувствую сейчас',
+  'рассказать что у меня нового',
+  'спросить, как у него дела',
+  'задать вопрос',
+  'поделиться своими мыслями',
+  'поговорить о чем-то интересном',
+  'обсудить что-то важное',
+];
+  const reason = reasons[Math.floor(Math.random() * reasons.length)];
+  await InitDialog(client, person, reason, -1);
 }

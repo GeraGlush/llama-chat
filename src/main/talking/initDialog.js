@@ -1,15 +1,15 @@
 import { getActivity } from '../schedule/mySchedule.js';
 import { generateMilenaReply } from './answer.js';
 
-export async function InitDialog(client, person, intent) {
+export async function InitDialog(client, person, intent, cdDiffMinutes = 5) {
   console.log(
     `[milenaInitiatesDialog] Инициируем сообщение для ${person.username}`,
   );
 
   const diff = Date.now() - person.lastMessageDate;
-  if (diff < 5 * 60 * 1000) {
+  if (diff < cdDiffMinutes * 60 * 1000) {
     console.log(
-      'C прошлого сообщения прошло меньше 5 минут, так что не инициируем новый диалог',
+      `C прошлого сообщения прошло меньше ${cdDiffMinutes} минут, так что не инициируем новый диалог`,
     );
     return false;
   }

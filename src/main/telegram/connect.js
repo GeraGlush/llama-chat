@@ -13,7 +13,7 @@ const rl = readline.createInterface({
 
 export async function connect() {
   console.log('Connecting...');
-  const accoutData = (await get('telegram_account_data')) || {};
+  const accoutData = await get('telegram_account_data');
 
   const session = accoutData
     ? new StringSession(accoutData)
