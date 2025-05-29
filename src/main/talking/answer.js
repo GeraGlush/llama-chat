@@ -121,12 +121,13 @@ export async function answerToSinglePerson(client, person, _incomingMessage) {
 
 
 async function randomContinueDialog(client, person) {
-  const random = Math.floor(Math.random() * 10);
-  
-  if (random < 8) return;
-  const randomDelay = Math.floor(
-    Math.random() * (120 - 5 + 1) + 5,
+  const wantsToContinue = (
+    person.lastMessageDate && Date.now() - person.lastMessageDate < 3 * 60 * 1000 &&
+    Math.random() < 0.15
   );
+  
+  if (!wantsToContinue) return;
+  const randomDelay = Math.floor(Math.random() * (180 - 30 + 1) + 30);
 
   await new Promise((resolve) =>
     setTimeout(resolve, randomDelay * 1000),
@@ -137,23 +138,6 @@ async function randomContinueDialog(client, person) {
     return;
   }
 
-await waitForActivityDone(person.activity.hurry);
-const reasons = [
-  'продолжить разговор', // не ошибка. Нужно, чтобы была вероятность больше, что будет продолжение разговора
-  'продолжить разговор',
-  'продолжить разговор',
-  'продолжить разговор',
-  'продолжить разговор',
-  'продолжить разговор',
-  'поговорить о чем-то',
-  'сказать, что я к нему чувствую сейчас',
-  'рассказать что у меня нового',
-  'спросить, как у него дела',
-  'задать вопрос',
-  'поделиться своими мыслями',
-  'поговорить о чем-то интересном',
-  'обсудить что-то важное',
-];
-  const reason = reasons[Math.floor(Math.random() * reasons.length)];
-  await InitDialog(client, person, reason, -1);
+  await waitForActivityDone(person.activity.hurry);
+  await InitDialog(client, person, 'продолжить разговор', 1);
 }
